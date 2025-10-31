@@ -1,0 +1,122 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.jboss.as.test.clustering.cluster.ejb.remote;
+
+import java.util.PropertyPermission;
+
+import jakarta.ejb.NoSuchEJBException;
+import jakarta.transaction.UserTransaction;
+
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.OperateOnDeployment;
+import org.jboss.arquillian.container.test.api.TargetsContainer;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.arquillian.container.ManagementClient;
+import org.jboss.as.test.clustering.cluster.AbstractClusteringTestCase;
+import org.jboss.as.test.clustering.cluster.ejb.remote.bean.Incrementor;
+import org.jboss.as.test.clustering.cluster.ejb.remote.bean.IncrementorBean;
+import org.jboss.as.test.clustering.cluster.ejb.remote.bean.Result;
+import org.jboss.as.test.clustering.cluster.ejb.remote.bean.StatefulIncrementorBean;
+import org.jboss.as.test.clustering.ejb.EJBDirectory;
+import org.jboss.as.test.clustering.ejb.RemoteEJBDirectory;
+import org.jboss.as.test.shared.ServerReload;
+import org.jboss.as.test.shared.PermissionUtils;
+import org.jboss.ejb.client.EJBClient;
+import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+/**
+ * Validates inhibition of failover behavior of a remotely accessed @Stateful EJB within the context of a transaction.
+ * @author Paul Ferraro
+ */
+@RunWith(Arquillian.class)
+public class TransactionalRemoteStatefulEJBFailoverTestCase extends AbstractClusteringTestCase {
+    private static final String MODULE_NAME = TransactionalRemoteStatefulEJBFailoverTestCase.class.getSimpleName();
+
+    @Deployment(name = DEPLOYMENT_1, managed = false, testable = false)
+    @TargetsContainer(NODE_1)
+    public static Archive<?> createDeploymentForContainer1() {
+        return createDeployment();
+    }
+
+    @Deployment(name = DEPLOYMENT_2, managed = false, testable = false)
+    @TargetsContainer(NODE_2)
+    public static Archive<?> createDeploymentForContainer2() {
+        return createDeployment();
+    }
+
+    private static Archive<?> createDeployment() {
+        return ShrinkWrap.create(JavaArchive.class, MODULE_NAME + ".jar")
+                .addPackage(EJBDirectory.class.getPackage())
+                .addClasses(Result.class, Incrementor.class, IncrementorBean.class, StatefulIncrementorBean.class)
+                .addAsManifestResource(PermissionUtils.createPermissionsXmlAsset(new PropertyPermission(NODE_NAME_PROPERTY, "read")), "permissions.xml")
+                ;
+    }
+
+    @Test
+    public void test(
+            @ArquillianResource @OperateOnDeployment(DEPLOYMENT_1) ManagementClient client1,
+            @ArquillianResource @OperateOnDeployment(DEPLOYMENT_2) ManagementClient client2
+    ) throws Exception {
+        try (EJBDirectory directory = new RemoteEJBDirectory(MODULE_NAME)) {
+            Incrementor bean = directory.lookupStateful(StatefulIncrementorBean.class, Incrementor.class);
+
+            Result<Integer> result = bean.increment();
+            // Bean should retain weak affinity for this node
+            String target = result.getNode();
+            int count = 1;
+
+            Assert.assertEquals(count++, result.getValue().intValue());
+
+            // Validate that multi-invocations function correctly within a tx
+            UserTransaction tx = EJBClient.getUserTransaction(target);
+            // TODO Currently requires environment to be configured with provider URLs.
+            // UserTransaction tx = directory.lookupUserTransaction();
+            tx.begin();
+
+            result = bean.increment();
+            Assert.assertEquals(count++, result.getValue().intValue());
+            Assert.assertEquals(target, result.getNode());
+
+            result = bean.increment();
+            Assert.assertEquals(count++, result.getValue().intValue());
+            Assert.assertEquals(target, result.getNode());
+
+            tx.commit();
+
+            // Validate that second invocation fails if target node is undeployed in middle of tx
+            tx.begin();
+
+            result = bean.increment();
+            Assert.assertEquals(count++, result.getValue().intValue());
+            Assert.assertEquals(target, result.getNode());
+
+            undeploy(this.findDeployment(target));
+
+            try {
+                result = bean.increment();
+
+                Assert.fail("Expected a NoSuchEJBException");
+            } catch (NoSuchEJBException e) {
+                // Expected
+            } finally {
+                tx.rollback();
+
+                // TODO remove workaround for WFLY-12128
+                undeploy(TWO_DEPLOYMENTS);
+                ServerReload.executeReloadAndWaitForCompletion(client1);
+                ServerReload.executeReloadAndWaitForCompletion(client2);
+                // Workaround the above yielding "DeploymentException: Cannot deploy StatefulFailoverTestCase.war: WFLYCTL0379: System boot is in process; execution of remote management operations is not currently available"
+                Thread.sleep(GRACE_TIME_TOPOLOGY_CHANGE);
+            }
+        }
+    }
+}

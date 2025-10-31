@@ -1,0 +1,21 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
+    <deployment>
+        <exclude-subsystems>
+            <subsystem name="ejb3" />
+            <subsystem name="ee" />
+            <subsystem name="webservices" />
+            <subsystem name="weld" />
+            <subsystem name="messaging-activemq" />
+            <subsystem name="jpa" />
+            <subsystem name="undertow" />
+        </exclude-subsystems>
+        <exclusions>
+            <module name="jakarta.jms.api"></module>
+        </exclusions>
+    </deployment>
+</jboss-deployment-structure>
+

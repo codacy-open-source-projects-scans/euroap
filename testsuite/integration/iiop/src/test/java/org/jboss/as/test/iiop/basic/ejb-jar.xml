@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<ejb-jar xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/ejb-jar_3_1.xsd"
+         version="3.1">
+    <enterprise-beans>
+        <session>
+            <ejb-name>ClientEjb</ejb-name>
+            <session-type>Stateless</session-type>
+            <ejb-ref>
+                <ejb-ref-name>home</ejb-ref-name>
+                <injection-target>
+                    <injection-target-class>org.jboss.as.test.iiop.basic.ClientEjb</injection-target-class>
+                    <injection-target-name>home</injection-target-name>
+                </injection-target>
+                <lookup-name>corbaname:iiop:${node1}:3628#IIOPBasicBean</lookup-name>
+            </ejb-ref>
+            <ejb-ref>
+                <ejb-ref-name>statefulHome</ejb-ref-name>
+                <injection-target>
+                    <injection-target-class>org.jboss.as.test.iiop.basic.ClientEjb</injection-target-class>
+                    <injection-target-name>statefulHome</injection-target-name>
+                </injection-target>
+                <lookup-name>corbaname:iiop:${node1}:3628#IIOPBasicStatefulBean</lookup-name>
+            </ejb-ref>
+        </session>
+    </enterprise-beans>
+</ejb-jar>

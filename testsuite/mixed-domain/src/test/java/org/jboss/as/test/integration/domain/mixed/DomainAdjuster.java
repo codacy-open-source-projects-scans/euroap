@@ -1,0 +1,270 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.jboss.as.test.integration.domain.mixed;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADDRESS;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.AUTO_START;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CHILD_TYPE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SOCKET_BINDING_GROUP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SYSTEM_PROPERTY;
+import static org.jboss.as.test.integration.domain.management.util.DomainTestUtils.executeForResult;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.client.helpers.domain.DomainClient;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.test.integration.domain.management.util.DomainTestUtils;
+import org.jboss.as.test.integration.domain.mixed.eap740.DomainAdjuster740;
+import org.jboss.as.test.integration.domain.mixed.eap800.DomainAdjuster800;
+import org.jboss.as.test.integration.management.util.MgmtOperationException;
+import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.Property;
+import org.junit.Assert;
+
+/**
+ * Adjusts the domain configuration for the legacy server version. The default implementation trims down the domain
+ * model to only include the following profiles, socket-binding-groups and server-groups
+ * <uL>
+ * <li>{@code /profile=full-ha}</li>
+ * <li>{@code /socket-binding-group=full-ha-sockets}</li>
+ * <li>{@code /server-group=other-server-group}</li>
+ * <li>{@code /server-group=main-server-group}</li>
+ * </uL>
+ * Subclasses can then further execute operations to put the model in a state which can be transformed to a legacy
+ * version.
+ *
+ * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
+ */
+public class DomainAdjuster {
+
+    private final String MAIN_SERVER_GROUP = "main-server-group";
+    private final String OTHER_SERVER_GROUP = "other-server-group";
+    private static final Set<String> UNUSED_SERVER_GROUP_ATTRIBUTES = new HashSet<>(Arrays.asList("management-subsystem-endpoint", "deployment", "deployment-overlay", "jvm", "system-property"));
+
+    static void adjustForVersion(final DomainClient client, final Version.AsVersion asVersion, final String profile, final boolean withPrimaryServers) throws Exception {
+
+        final DomainAdjuster adjuster;
+        switch (asVersion) {
+            case EAP_7_4_0:
+                adjuster = new DomainAdjuster740();
+                break;
+            case EAP_8_0_0:
+                adjuster = new DomainAdjuster800();
+                break;
+            default:
+                adjuster = new DomainAdjuster();
+        }
+        adjuster.adjust(client, profile, withPrimaryServers);
+    }
+
+    final void adjust(final DomainClient client, String profile, boolean withPrimaryServers) throws Exception {
+        //Trim it down so we have only
+        //profile=full-ha,
+        //the main-server-group and other-server-group
+        //socket-binding-group = full-ha-sockets
+        final List<String> allProfiles = getAllChildrenOfType(client, PathAddress.EMPTY_ADDRESS, PROFILE);
+        final ModelNode serverGroup = removeServerGroups(client, profile);
+
+        for (String profileName : allProfiles) {
+            if (profile.equals(profileName)) {
+                continue;
+            }
+            removeProfile(client, profileName);
+        }
+        final String socketBindingGroup = serverGroup.get(SOCKET_BINDING_GROUP).asString();
+        removeUnusedSocketBindingGroups(client, socketBindingGroup);
+
+        removeIpv4SystemProperty(client);
+
+        // We don't want any standard host-excludes as the tests are meant to see what happens
+        // with the current configs on legacy secondaries
+        removeHostExcludes(client);
+
+        final PathAddress profileAddress = PathAddress.pathAddress(PROFILE, profile);
+        adjustExpansionExtensions(client, profileAddress);
+
+        //Version specific changes
+        final List<ModelNode> adjustments = adjustForVersion(client, PathAddress.pathAddress(PROFILE, profile), withPrimaryServers);
+        if (withPrimaryServers) {
+            adjustments.addAll(reconfigureServers());
+        }
+
+        applyVersionAdjustments(client, adjustments);
+    }
+
+    private void removeIpv4SystemProperty(final DomainClient client) throws Exception {
+        //The standard domain configuration contains -Djava.net.preferIPv4Stack=true, remove that
+        DomainTestUtils.executeForResult(
+                Util.createRemoveOperation(PathAddress.pathAddress(SYSTEM_PROPERTY, "java.net.preferIPv4Stack")), client);
+
+    }
+
+    private void removeHostExcludes(DomainClient client) throws Exception {
+        final List<String> allHostExcludes = getAllChildrenOfType(client, PathAddress.EMPTY_ADDRESS, "host-exclude");
+        for (String exclude : allHostExcludes) {
+            DomainTestUtils.executeForResult(
+                    Util.createRemoveOperation(PathAddress.pathAddress("host-exclude", exclude)), client);
+        }
+    }
+
+    /**
+     * Adjust the Domain configuration to work properly with the expected secondary.
+     *
+     * @param client           The domain client.
+     * @param profileAddress   The address of the profile that is being used.
+     * @param withPrimaryServer Whether the Dc has managed servers.
+     * @return The List of Operations that need to be executed to adjust the domain.
+     * @throws Exception
+     */
+    protected List<ModelNode> adjustForVersion(final DomainClient client, final PathAddress profileAddress, final boolean withPrimaryServer) throws Exception {
+        return new ArrayList<>();
+    }
+
+    private void removeProfile(final DomainClient client, final String name) throws Exception {
+        executeForResult(Util.createRemoveOperation(PathAddress.pathAddress(PROFILE, name)), client);
+    }
+
+    private List<String> getAllChildrenOfType(final DomainClient client,
+            final PathAddress parent, final String type) throws Exception {
+        final ModelNode op = Util.createEmptyOperation(READ_CHILDREN_NAMES_OPERATION, parent);
+        op.get(CHILD_TYPE).set(type);
+        final ModelNode result = executeForResult(op, client);
+        final List<String> childNames = new ArrayList<>();
+        for (ModelNode nameNode : result.asList()) {
+            childNames.add(nameNode.asString());
+        }
+        return childNames;
+    }
+
+    private ModelNode removeServerGroups(final DomainClient client, String profile) throws Exception {
+        final ModelNode op = Util.createEmptyOperation(READ_RESOURCE_OPERATION, PathAddress.pathAddress(PathElement.pathElement(SERVER_GROUP)));
+        final ModelNode results = executeForResult(op, client);
+        ModelNode group = null;
+        for (ModelNode result : results.asList()) {
+            String groupName = PathAddress.pathAddress(result.get(ADDRESS)).getLastElement().getValue();
+            if (OTHER_SERVER_GROUP.equals(groupName)) {
+                group = result.get(RESULT);
+            } else if (MAIN_SERVER_GROUP.equals(groupName)) {
+                //We'll update it afterwards because we have servers using it now
+            } else {
+                ModelNode remove = Util.createRemoveOperation(PathAddress.pathAddress(result.get(ADDRESS)));
+                executeForResult(remove, client);
+            }
+        }
+        Assert.assertNotNull(group);
+
+        //Update main-server-group as a copy of other-server-group (cuts down on the amount of profiles needed)
+        final PathAddress mainServerGroupAddress = PathAddress.pathAddress(SERVER_GROUP, MAIN_SERVER_GROUP);
+        for (Property property : group.asPropertyList()) {
+            ModelNode updateMain;
+            if (!UNUSED_SERVER_GROUP_ATTRIBUTES.contains(property.getName())) {
+                if (PROFILE.equals(property.getName())) {
+                    updateMain = Util.getWriteAttributeOperation(mainServerGroupAddress, property.getName(), profile);
+                } else {
+                    if (property.getValue().isDefined()) {
+                        updateMain = Util.getWriteAttributeOperation(mainServerGroupAddress, property.getName(), property.getValue());
+                    } else {
+                        updateMain = Util.getUndefineAttributeOperation(mainServerGroupAddress, property.getName());
+                    }
+                }
+                executeForResult(updateMain, client);
+            }
+        }
+        final PathAddress otherServerGroupAddress = PathAddress.pathAddress(SERVER_GROUP, OTHER_SERVER_GROUP);
+        for (Property property : group.asPropertyList()) {
+            ModelNode updateOther;
+            if (!UNUSED_SERVER_GROUP_ATTRIBUTES.contains(property.getName())) {
+                if (PROFILE.equals(property.getName())) {
+                    updateOther = Util.getWriteAttributeOperation(otherServerGroupAddress, property.getName(), profile);
+                } else {
+                    if (property.getValue().isDefined()) {
+                        updateOther = Util.getWriteAttributeOperation(mainServerGroupAddress, property.getName(), property.getValue());
+                    } else {
+                        updateOther = Util.getUndefineAttributeOperation(mainServerGroupAddress, property.getName());
+                    }
+                }
+                executeForResult(updateOther, client);
+            }
+        }
+        return group;
+    }
+
+    private void removeUnusedSocketBindingGroups(final DomainClient client, final String keepGroup) throws Exception {
+        final List<String> allGroups = getAllChildrenOfType(client, PathAddress.EMPTY_ADDRESS, SOCKET_BINDING_GROUP);
+        for (String groupName : allGroups) {
+            if (!keepGroup.equals(groupName)) {
+                ModelNode remove = Util.createRemoveOperation(PathAddress.pathAddress(PathAddress.pathAddress(SOCKET_BINDING_GROUP, groupName)));
+                executeForResult(remove, client);
+            }
+        }
+    }
+
+    /**
+     * Returns the class name of the http auth module. This uses the wildfly version. Adjusters for AS 7/EAP 6 should
+     * override this method and return
+     * {@code org.wildfly.extension.undertow.security.jaspi.modules.HTTPSchemeServerAuthModule}
+     *
+     * @return the auth module
+     */
+    protected String getJaspiTestAuthModuleName() {
+        return "org.wildfly.extension.undertow.security.jaspi.modules.HTTPSchemeServerAuthModule";
+    }
+
+    private void applyVersionAdjustments(DomainClient client, List<ModelNode> operations) throws Exception {
+        if (operations.isEmpty()) {
+            return;
+        }
+        for (ModelNode op : operations) {
+            DomainTestUtils.executeForResult(op, client);
+        }
+    }
+
+    private Collection<? extends ModelNode> reconfigureServers() {
+        final List<ModelNode> list = new ArrayList<>();
+        //Reconfigure primary servers
+        final PathAddress primaryHostAddress = PathAddress.pathAddress(HOST, "primary");
+        list.add(Util.getWriteAttributeOperation(primaryHostAddress.append(SERVER_CONFIG, "server-one"), AUTO_START, true));
+        list.add(Util.getWriteAttributeOperation(primaryHostAddress.append(SERVER_CONFIG, "server-one"), ModelDescriptionConstants.GROUP, "main-server-group"));
+        list.add(Util.getUndefineAttributeOperation(primaryHostAddress.append(SERVER_CONFIG, "server-one"), ModelDescriptionConstants.SOCKET_BINDING_PORT_OFFSET));
+        list.add(Util.getWriteAttributeOperation(primaryHostAddress.append(SERVER_CONFIG, "server-two"), AUTO_START, true));
+        list.add(Util.getWriteAttributeOperation(primaryHostAddress.append(SERVER_CONFIG, "server-two"), ModelDescriptionConstants.SOCKET_BINDING_PORT_OFFSET, 100));
+        return list;
+    }
+
+    protected void removeSubsystemExtensionIfExist(DomainClient client, PathAddress subsystem, PathAddress extension) throws IOException {
+        try {
+            DomainTestUtils.executeForResult(Util.getReadResourceOperation(subsystem), client);
+            DomainTestUtils.executeForResult(Util.createRemoveOperation(subsystem), client);
+        } catch (MgmtOperationException e) {
+            // ignored, the subsystem does not exist
+        }
+        try {
+            DomainTestUtils.executeForResult(Util.getReadResourceOperation(extension), client);
+            DomainTestUtils.executeForResult(Util.createRemoveOperation(extension), client);
+        } catch (MgmtOperationException e) {
+            // ignored, the extension does not exist
+        }
+    }
+
+    protected void adjustExpansionExtensions(DomainClient client, PathAddress profileAddress) throws Exception {
+       // no-op, it is expected to be implemented by the subclasses if they require to adjust the XP extensions before starting the secondary Host Controller.
+    }
+}

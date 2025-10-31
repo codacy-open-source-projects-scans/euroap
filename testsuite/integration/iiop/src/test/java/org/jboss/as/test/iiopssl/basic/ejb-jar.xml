@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<ejb-jar xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/ejb-jar_3_1.xsd"
+         version="3.1">
+    <enterprise-beans>
+        <session>
+            <ejb-name>ClientEjb</ejb-name>
+            <session-type>Stateless</session-type>
+            <ejb-ref>
+                <ejb-ref-name>statelessHome</ejb-ref-name>
+                <injection-target>
+                    <injection-target-class>org.jboss.as.test.iiopssl.basic.ClientEjb</injection-target-class>
+                    <injection-target-name>statelessHome</injection-target-name>
+                </injection-target>
+                <lookup-name>corbaname:ssliop:1.2@${node1}:3629#IIOPSslStatelessBean</lookup-name>
+            </ejb-ref>
+        </session>
+    </enterprise-beans>
+</ejb-jar>

@@ -1,0 +1,162 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.jboss.as.naming;
+
+import org.jboss.as.naming.deployment.JndiNamingDependencyProcessor;
+import org.jboss.as.naming.deployment.RuntimeBindReleaseService;
+import org.jboss.as.naming.logging.NamingLogger;
+import org.jboss.as.naming.service.BinderService;
+import org.jboss.msc.service.LifecycleEvent;
+import org.jboss.msc.service.LifecycleListener;
+import org.jboss.msc.service.ServiceBuilder;
+import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.msc.service.ServiceTarget;
+import org.wildfly.common.function.ThreadLocalStack;
+
+import javax.naming.Context;
+import javax.naming.Name;
+import javax.naming.NamingException;
+import javax.naming.OperationNotSupportedException;
+import java.util.Hashtable;
+import java.util.concurrent.CountDownLatch;
+
+import static org.jboss.as.naming.util.NamingUtils.isLastComponentEmpty;
+import static org.jboss.as.naming.util.NamingUtils.namingException;
+
+/**
+ * @author John Bailey
+ * @author Eduardo Martins
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ */
+public class WritableServiceBasedNamingStore extends ServiceBasedNamingStore implements WritableNamingStore {
+    private static final ThreadLocalStack WRITE_OWNER = new ThreadLocalStack();
+
+    private final ServiceTarget serviceTarget;
+
+    public WritableServiceBasedNamingStore(ServiceRegistry serviceRegistry, ServiceName serviceNameBase, ServiceTarget serviceTarget) {
+        super(serviceRegistry, serviceNameBase);
+        this.serviceTarget = serviceTarget;
+    }
+
+    public void bind(final Name name, final Object object, final Class<?> bindType) throws NamingException {
+        bind(name, object);
+    }
+
+    public void bind(final Name name, final Object object) throws NamingException {
+        final Object owner = requireOwner();
+        final ServiceName bindName = buildServiceName(name);
+        bind(name, object, owner, bindName);
+    }
+
+    private void bind(Name name, Object object, Object owner, ServiceName bindName) throws NamingException {
+        ServiceTarget serviceTarget = this.serviceTarget;
+        ServiceName deploymentUnitServiceName = null;
+        if (owner instanceof ServiceName) {
+            deploymentUnitServiceName = (ServiceName) owner;
+        } else {
+            serviceTarget = (ServiceTarget) owner;
+        }
+        try {
+            // unlike on deployment processors, we may assume here it's a shareable bind if the owner is a deployment, because deployment unshareable namespaces are readonly stores
+            final BinderService binderService = new BinderService(name.toString(), null, deploymentUnitServiceName != null);
+            binderService.getManagedObjectInjector().inject(new ImmediateManagedReferenceFactory(object));
+            final ServiceBuilder<?> builder = serviceTarget.addService(bindName, binderService)
+                    .addDependency(getServiceNameBase(), ServiceBasedNamingStore.class, binderService.getNamingStoreInjector());
+            final ServiceController<?> binderServiceController = builder.install();
+            try {
+                binderServiceController.awaitValue();
+            } catch (final IllegalStateException t) {
+                final Exception startException = binderServiceController.getStartException();
+                if (startException != null) {
+                    throw startException;
+                }
+            }
+            if (deploymentUnitServiceName != null) {
+                binderService.acquire();
+                final RuntimeBindReleaseService.References duBindingReferences = (RuntimeBindReleaseService.References) binderServiceController.getServiceContainer().getService(JndiNamingDependencyProcessor.serviceName(deploymentUnitServiceName)).getValue();
+                duBindingReferences.add(binderService);
+            }
+        } catch (Exception e) {
+            throw namingException("Failed to bind [" + object + "] at location [" + bindName + "]", e);
+        }
+    }
+
+    public void rebind(Name name, Object object) throws NamingException {
+        final Object owner = requireOwner();
+        // re-set the existent binder service injected value
+        final ServiceName bindName = buildServiceName(name);
+        final ServiceController<?> controller = getServiceRegistry().getService(bindName);
+        if (controller == null) {
+            bind(name, object, owner, bindName);
+        } else {
+            final BinderService binderService = (BinderService) controller.getService();
+            if (owner instanceof ServiceName) {
+                final ServiceName deploymentUnitServiceName = (ServiceName) owner;
+                binderService.acquire();
+                final RuntimeBindReleaseService.References duBindingReferences = (RuntimeBindReleaseService.References) controller.getServiceContainer().getService(JndiNamingDependencyProcessor.serviceName(deploymentUnitServiceName)).getValue();
+                duBindingReferences.add(binderService);
+            }
+            binderService.getManagedObjectInjector().setValue(() -> new ImmediateManagedReferenceFactory(object));
+        }
+    }
+
+    public void rebind(final Name name, final Object object, final Class<?> bindType) throws NamingException {
+        rebind(name, object);
+    }
+
+    public void unbind(final Name name) throws NamingException {
+        requireOwner();
+        final ServiceName bindName = buildServiceName(name);
+        final ServiceController<?> controller = getServiceRegistry().getService(bindName);
+        if (controller == null) {
+            throw NamingLogger.ROOT_LOGGER.cannotResolveService(bindName);
+        }
+        final CountDownLatch latch = new CountDownLatch(1);
+        controller.addListener(new LifecycleListener() {
+            @Override
+            public void handleEvent(final ServiceController<?> controller, final LifecycleEvent event) {
+                if (event == LifecycleEvent.REMOVED) latch.countDown();
+            }
+        });
+        try {
+            controller.setMode(ServiceController.Mode.REMOVE);
+            latch.await();
+        } catch (Exception e) {
+            throw namingException("Failed to unbind [" + bindName + "]", e);
+        }
+    }
+
+    public Context createSubcontext(final Name name) throws NamingException {
+        requireOwner();
+        if (isLastComponentEmpty(name)) {
+            throw NamingLogger.ROOT_LOGGER.emptyNameNotAllowed();
+        }
+        return new NamingContext(name, WritableServiceBasedNamingStore.this, new Hashtable<String, Object>());
+    }
+
+    private Object requireOwner() throws OperationNotSupportedException {
+        final Object owner = WRITE_OWNER.peek();
+        if (owner == null) {
+            throw NamingLogger.ROOT_LOGGER.readOnlyNamingContext();
+        }
+        return owner;
+    }
+
+    public static void pushOwner(final ServiceName deploymentUnitServiceName) {
+        WRITE_OWNER.push(deploymentUnitServiceName);
+    }
+
+    public static void pushOwner(final ServiceTarget serviceTarget) {
+        WRITE_OWNER.push(serviceTarget);
+    }
+
+    public static void popOwner() {
+        WRITE_OWNER.pop();
+    }
+
+}

@@ -1,0 +1,16 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<subsystem xmlns="urn:jboss:domain:batch-jberet:3.0">
+    <default-job-repository name="in-memory"/>
+    <default-thread-pool name="batch"/>
+    <job-repository name="in-memory">
+        <in-memory/>
+    </job-repository>
+
+    <thread-pool name="batch">
+        <max-threads count="10"/>
+    </thread-pool>
+</subsystem>

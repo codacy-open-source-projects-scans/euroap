@@ -1,0 +1,71 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.jboss.as.security;
+
+import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.ModelOnlyAddStepHandler;
+import org.jboss.as.controller.ModelOnlyRemoveStepHandler;
+import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
+import org.jboss.as.controller.OperationStepHandler;
+import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.PropertiesAttributeDefinition;
+import org.jboss.as.controller.SimpleAttributeDefinition;
+import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.SimpleResourceDefinition;
+import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.OperationEntry;
+import org.jboss.dmr.ModelType;
+
+/**
+ * @author <a href="mailto:tomaz.cerar@redhat.com">Tomaz Cerar</a> (c) 2012 Red Hat Inc.
+ */
+class MappingModuleDefinition extends SimpleResourceDefinition {
+
+    protected static final SimpleAttributeDefinition CODE = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.CODE, ModelType.STRING)
+            .setRequired(true)
+            .build();
+
+    protected static final SimpleAttributeDefinition TYPE = new SimpleAttributeDefinitionBuilder(ModelDescriptionConstants.TYPE, ModelType.STRING)
+            .setRequired(true)
+            .setAllowExpression(true)
+            .build();
+
+    protected static final SimpleAttributeDefinition MODULE = LoginModuleResourceDefinition.MODULE;
+
+    protected static final PropertiesAttributeDefinition MODULE_OPTIONS = new PropertiesAttributeDefinition.Builder(Constants.MODULE_OPTIONS, true)
+            .setAllowExpression(true)
+            .build();
+    private static final AttributeDefinition[] ATTRIBUTES = {CODE, TYPE, MODULE, MODULE_OPTIONS};
+
+
+    MappingModuleDefinition(String key) {
+        super(PathElement.pathElement(key),
+                SecurityExtension.getResourceDescriptionResolver(Constants.MAPPING_MODULE),
+                null,
+                ModelOnlyRemoveStepHandler.INSTANCE
+        );
+    }
+
+    @Override
+    public void registerOperations(ManagementResourceRegistration resourceRegistration) {
+        super.registerOperations(resourceRegistration);
+        super.registerAddOperation(resourceRegistration, new ModelOnlyAddStepHandler(this.getAttributes()), OperationEntry.Flag.RESTART_NONE);
+    }
+
+    @Override
+    public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
+        super.registerAttributes(resourceRegistration);
+        OperationStepHandler writeHandler = new ModelOnlyWriteAttributeHandler(getAttributes());
+        for (AttributeDefinition attr : getAttributes()) {
+            resourceRegistration.registerReadWriteAttribute(attr, null, writeHandler);
+        }
+    }
+
+    public AttributeDefinition[] getAttributes() {
+        return ATTRIBUTES;
+    }
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<layer-spec xmlns="urn:jboss:galleon:layer-spec:2.0" name="ejb-local-cache">
+    <props>
+        <prop name="org.wildfly.category" value="Jakarta EE"/>
+        <prop name="org.wildfly.description" value="Infinispan-based local cache for stateful session beans."/>
+        <prop name="org.wildfly.note" value="This layer must be explicitly excluded if ejb-dist-cache is in use."/>
+    </props>
+    <dependencies>
+        <layer name="transactions"/>
+    </dependencies>
+    <feature spec="subsystem.ejb3">
+        <param name="default-stateful-bean-access-timeout" value="5000"/>
+        <param name="default-sfsb-cache" value="simple"/>
+    </feature>
+    <!-- distributable-ejb subsystem providing local clustering abstractions for ejb3 subsystem-->
+    <feature-group name="distributable-ejb-local"/>
+    <!-- Infinispan cache configuration used for local SFSB caching -->
+    <feature-group name="infinispan-local-ejb"/>
+</layer-spec>

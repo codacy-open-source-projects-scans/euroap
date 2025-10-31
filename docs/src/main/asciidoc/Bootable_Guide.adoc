@@ -1,0 +1,135 @@
+[[Bootable_Guide]]
+= Bootable JAR Guide
+WildFly authors;
+:revnumber: {version}
+:revdate: {localdate}
+:toc: macro
+:toclevels: 3
+:toc-title: Bootable JAR Guide
+:doctype: book
+:icons: font
+:source-highlighter: coderay
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+// ifndef::ebook-format[:leveloffset: 1]
+
+ifdef::basebackend-html[toc::[]]
+:numbered:
+
+[[wildfly_bootable_JAR_development]]
+= WildFly bootable JAR application development
+
+[WARNING]
+The usage of the link:https://github.com/wildfly-extras/wildfly-jar-maven-plugin[WildFly Bootable JAR Maven plugin] has been deprecated. 
+This link:https://docs.wildfly.org/33/Bootable_Guide.html[documentation] covers its usage.
+This chapter covers the creation of a bootable JAR using the link:https://docs.wildfly.org/wildfly-maven-plugin[WildFly Maven Plugin].
+
+This document details the steps to follow in order to develop a WildFly application
+packaged as a bootable JAR. A WildFly bootable JAR should target a bare-metal or virtualized platform. For the cloud platform, 
+you should read the link:WildFly_Maven_Plugin_Guide{outfilesuffix}[WildFly Maven Plugin Guide] that explains how to produce a WildFly installation 
+ready to run on the cloud.
+
+Developing an application packaged as a bootable JAR is no different from developing an application using the WildFly Maven Plugin.
+Additional configuration items instruct the plugin to produce a WildFly Bootable JAR.
+
+[[wildfly-maven-plugin-jar-pom-configuration]]
+== Configuring the WildFly Maven plugin
+
+Maven Plugin configuration example:
+
+[source,xml]
+----
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.wildfly.plugins</groupId>
+      <artifactId>wildfly-maven-plugin</artifactId>
+      <configuration>
+        <feature-packs>
+          <feature-pack>
+            <location>wildfly@maven(org.jboss.universe:community-universe)</location>
+          </feature-pack>
+        </feature-packs>
+        <layers>
+          <layer>jaxrs-server</layer>
+        </layers>
+        <bootable-jar>true</bootable-jar> (1)
+      </configuration>
+      <executions>
+        <execution>
+          <goals>
+            <goal>package</goal>
+          </goals>
+        </execution>
+      </executions>
+    </plugin>
+  </plugins>
+</build>
+----
+
+(1) This option will cause the plugin produce a bootable JAR. 
+By default the file `server-bootable.jar` is generated in the project `target` directory. You can use the option `<bootable-jar-name>[jar name]</bootable-jar-name>` to change the jar name. 
+
+[[wildfly-maven-plugin-jar-run]]
+== Running your application
+
+Call ```java -jar <path to bootable JAR> <arguments>```
+
+[[wildfly-bootable-jar-arguments]]
+=== Bootable JAR arguments
+
+The following arguments can be used when starting the bootable JAR:
+
+|===
+|Option |Description
+
+|-b[interface]=<value>
+|Set system property jboss.bind.address.<interface> to the given value
+
+|-b=<value>
+|Set system property jboss.bind.address to the given value
+
+|-D<name>[=<value>] 
+|Set a system property. The system properties are set by the server. They are not set by the bootable JAR JVM.
+
+|--help
+|Display help then exit
+
+|--cli-script=<path to CLI script file>
+|Path to a CLI script to execute when starting the Bootable JAR
+
+|--deployment=<path to WAR/JAR/EAR file or exploded deployment directory>
+|Application to install in the hollow JAR. Adding a deployment to an bootable JAR already containing a deployment is invalid.
+
+|--display-galleon-config
+|Display the content of the Galleon configuration used to build this bootable JAR.
+
+|--install-dir=<path to directory to install server in>
+|By default a new TEMP directory is created. TEMP directory location is controlled by the Java VM (call to ```Files.createTempDirectory```).
+
+|--properties=<url>
+|Load system properties from the given url
+
+|-S<name>[=value]
+|Set a security property
+
+|-secmgr
+|Activate and install the `WildFlySecurityManager`.
+
+|--stability[=value]
+|Runs the server using a specific stability level. Possible values: [default, community, preview, experimental], Default = community
+
+|-u=<value>
+|Set system property jboss.default.multicast.address to the given value.
+
+|--version
+|Print version and exit.
+
+|===

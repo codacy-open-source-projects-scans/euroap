@@ -1,0 +1,19 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<server xmlns="urn:jboss:service:7.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:jboss:service:7.0 jboss-service_7_0.xsd">
+
+	<mbean code="org.jboss.as.test.integration.sar.injection.depends.A" name="test:service=A" />
+
+	<mbean code="org.jboss.as.test.integration.sar.injection.depends.A" name="test:service=A1">
+		<depends optional-attribute-name="ObjectName">test:service=A</depends>
+	</mbean>
+	
+	<mbean code="org.jboss.as.test.integration.sar.injection.depends.B" name="test:service=B">
+		<depends-list optional-attribute-name="objectNames">
+        	<depends-list-element>test:service=A</depends-list-element>
+        	<depends-list-element>test:service=A1</depends-list-element>
+    	</depends-list>
+	</mbean>
+</server>

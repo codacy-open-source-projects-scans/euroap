@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<deploymentAspects xmlns="urn:jboss:ws:deployment:aspects:1.0">
+  <deploymentAspect class="org.jboss.as.webservices.parser.TestDA1"/>
+  <deploymentAspect class="org.jboss.as.webservices.parser.TestDA2">
+    <property name="two" class="java.lang.String">myString</property>
+  </deploymentAspect>
+  <deploymentAspect class="org.jboss.as.webservices.parser.TestDA4">
+    <property name="map" class="java.util.HashMap">
+      <map keyClass="java.lang.String" valueClass="java.lang.Integer">
+        <entry>
+          <key>One</key>
+          <value>1</value>
+        </entry>
+        <entry>
+          <key>Three</key>
+          <value>3</value>
+        </entry>
+      </map>
+    </property>
+    <property name="bool" class="java.lang.Boolean">true</property>
+  </deploymentAspect>
+  <deploymentAspect class="org.jboss.as.webservices.parser.TestDA3">
+    <property name="list" class="java.util.LinkedList">
+      <list elementClass="java.lang.String">
+        <value>One</value>
+        <value>Two</value>
+      </list>
+    </property>
+  </deploymentAspect>
+</deploymentAspects>

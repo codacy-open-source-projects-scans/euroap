@@ -1,0 +1,429 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.jboss.as.test.integration.common.jms;
+
+import static org.jboss.as.controller.client.helpers.ClientConstants.ADD;
+import static org.jboss.as.controller.client.helpers.ClientConstants.REMOVE_OPERATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.NAME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
+import static org.jboss.as.test.integration.common.jms.JMSOperationsProvider.execute;
+
+import java.util.Map;
+
+import org.jboss.as.arquillian.container.ManagementClient;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.client.ModelControllerClient;
+import org.jboss.dmr.ModelNode;
+import org.jboss.dmr.Property;
+
+
+/**
+ * An implementation of JMSOperations for Apache ActiveMQ 6.
+ *
+ * @author <a href="http://jmesnil.net/">Jeff Mesnil</a> (c) 2014 Red Hat inc.
+ */
+public class ActiveMQProviderJMSOperations implements JMSOperations {
+    private final ModelControllerClient client;
+
+    public ActiveMQProviderJMSOperations(ModelControllerClient client) {
+        this.client = client;
+    }
+
+    public ActiveMQProviderJMSOperations(ManagementClient client) {
+        this.client = client.getControllerClient();
+    }
+
+    private static final ModelNode subsystemAddress = new ModelNode();
+    static {
+        subsystemAddress.add("subsystem", "messaging-activemq");
+    }
+
+    private static final ModelNode serverAddress = new ModelNode();
+    static {
+        serverAddress.add("subsystem", "messaging-activemq");
+        serverAddress.add("server", "default");
+    }
+
+    @Override
+    public ModelControllerClient getControllerClient() {
+        return client;
+    }
+
+    @Override
+    public ModelNode getServerAddress() {
+        return serverAddress.clone();
+    }
+
+    @Override
+    public ModelNode getSubsystemAddress() {
+        return subsystemAddress.clone();
+    }
+
+    @Override
+    public String getProviderName() {
+        return "activemq";
+    }
+
+    @Override
+    public void createJmsQueue(String queueName, String jndiName) {
+        createJmsQueue(queueName, jndiName, new ModelNode());
+    }
+
+    @Override
+    public void createJmsQueue(String queueName, String jndiName, ModelNode attributes) {
+        ModelNode address = getServerAddress()
+                .add("jms-queue", queueName);
+        attributes.get("entries").add(jndiName);
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void createJmsTopic(String topicName, String jndiName) {
+        createJmsTopic(topicName, jndiName, new ModelNode());
+    }
+
+    @Override
+    public void createJmsTopic(String topicName, String jndiName, ModelNode attributes) {
+        ModelNode address = getServerAddress()
+                .add("jms-topic", topicName);
+        attributes.get("entries").add(jndiName);
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void removeJmsQueue(String queueName) {
+        ModelNode address = getServerAddress()
+                .add("jms-queue", queueName);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void removeJmsTopic(String topicName) {
+        ModelNode address = getServerAddress()
+                .add("jms-topic", topicName);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void addJmsConnectionFactory(String name, String jndiName, ModelNode attributes) {
+        ModelNode address = getServerAddress()
+                .add("connection-factory", name);
+        attributes.get("entries").add(jndiName);
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void removeJmsConnectionFactory(String name) {
+        ModelNode address = getServerAddress()
+                .add("connection-factory", name);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+    @Override
+    public void addJmsExternalConnectionFactory(String name, String jndiName, ModelNode attributes) {
+        ModelNode address = getSubsystemAddress()
+                .add("connection-factory", name);
+        attributes.get("entries").add(jndiName);
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void removeJmsExternalConnectionFactory(String name) {
+        ModelNode address = getSubsystemAddress()
+                .add("connection-factory", name);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void addJmsBridge(String name, ModelNode attributes) {
+        ModelNode address = new ModelNode();
+        address.add("subsystem", "messaging-activemq");
+        address.add("jms-bridge", name);
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void removeJmsBridge(String name) {
+        ModelNode address = new ModelNode();
+        address.add("subsystem", "messaging-activemq");
+        address.add("jms-bridge", name);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void addCoreBridge(String name, ModelNode attributes) {
+        ModelNode address = getServerAddress();
+        address.add("bridge", name);
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void removeCoreBridge(String name) {
+        ModelNode address = getServerAddress();
+        address.add("bridge", name);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void addCoreQueue(String queueName, String queueAddress, boolean durable, String routing) {
+        ModelNode address = getServerAddress()
+                .add("queue", queueName);
+        ModelNode attributes = new ModelNode();
+        attributes.get("queue-address").set(queueAddress);
+        attributes.get("durable").set(durable);
+        attributes.get("routing-type").set(routing);
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void removeCoreQueue(String queueName) {
+        ModelNode address = getServerAddress()
+                .add("queue", queueName);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void createRemoteAcceptor(String name, String socketBinding, Map<String, String> params) {
+        ModelNode model = getServerAddress().add("remote-acceptor", name);
+        ModelNode attributes = new ModelNode();
+        attributes.get("socket-binding").set(socketBinding);
+        if (params != null) {
+            addParams(params, model);
+        }
+        executeOperation(model, ADD, attributes);
+    }
+
+    private void addParams(Map<String, String> params, ModelNode model) {
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            model.get("params").add(entry.getKey(), entry.getValue());
+        }
+    }
+
+    @Override
+    public void removeRemoteAcceptor(String name) {
+        ModelNode model = getServerAddress().add("remote-acceptor", name);
+        executeOperation(model, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void close() {
+        // no-op
+        // DO NOT close the management client. Whoever passed it into the constructor should close it
+    }
+
+    private void executeOperation(final ModelNode address, final String opName, ModelNode attributes) {
+        final ModelNode operation = new ModelNode();
+        operation.get(OP).set(opName);
+        operation.get(OP_ADDR).set(address);
+        if (attributes != null) {
+            for (Property property : attributes.asPropertyList()) {
+                operation.get(property.getName()).set(property.getValue());
+            }
+        }
+        try {
+            execute(client, operation);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void setSystemProperties(String destination, String resourceAdapter) {
+        final ModelNode enableSubstitutionOp = new ModelNode();
+        enableSubstitutionOp.get(OP_ADDR).set(SUBSYSTEM, "ee");
+        enableSubstitutionOp.get(OP).set(WRITE_ATTRIBUTE_OPERATION);
+        enableSubstitutionOp.get(NAME).set("annotation-property-replacement");
+        enableSubstitutionOp.get(VALUE).set(true);
+
+        final ModelNode setDestinationOp = new ModelNode();
+        setDestinationOp.get(OP).set(ADD);
+        setDestinationOp.get(OP_ADDR).add("system-property", "destination");
+        setDestinationOp.get("value").set(destination);
+        final ModelNode setResourceAdapterOp = new ModelNode();
+        setResourceAdapterOp.get(OP).set(ADD);
+        setResourceAdapterOp.get(OP_ADDR).add("system-property", "resource.adapter");
+        setResourceAdapterOp.get("value").set(resourceAdapter);
+
+        try {
+            execute(client, enableSubstitutionOp);
+            execute(client, setDestinationOp);
+            execute(client, setResourceAdapterOp);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void removeSystemProperties() {
+        final ModelNode removeDestinationOp = new ModelNode();
+        removeDestinationOp.get(OP).set("remove");
+        removeDestinationOp.get(OP_ADDR).add("system-property", "destination");
+        final ModelNode removeResourceAdapterOp = new ModelNode();
+        removeResourceAdapterOp.get(OP).set("remove");
+        removeResourceAdapterOp.get(OP_ADDR).add("system-property", "resource.adapter");
+
+        final ModelNode disableSubstitutionOp = new ModelNode();
+        disableSubstitutionOp.get(OP_ADDR).set(SUBSYSTEM, "ee");
+        disableSubstitutionOp.get(OP).set(WRITE_ATTRIBUTE_OPERATION);
+        disableSubstitutionOp.get(NAME).set("annotation-property-replacement");
+        disableSubstitutionOp.get(VALUE).set(false);
+
+        try {
+            execute(client, removeDestinationOp);
+            execute(client, removeResourceAdapterOp);
+            execute(client, disableSubstitutionOp);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void addHttpConnector(String connectorName, String socketBinding, String endpoint, Map<String, String> parameters) {
+        ModelNode address = getServerAddress().add("http-connector", connectorName);
+
+        ModelNode attributes = new ModelNode();
+        attributes.get("socket-binding").set(socketBinding);
+        attributes.get("endpoint").set(endpoint);
+        if (parameters != null && !parameters.isEmpty()) {
+            ModelNode params = attributes.get("params").setEmptyList();
+            for (Map.Entry<String, String> param : parameters.entrySet()) {
+                params.add(param.getKey(), param.getValue());
+            }
+        }
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void removeHttpConnector(String connectorName) {
+        ModelNode address = getServerAddress()
+                .add("http-connector", connectorName);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+
+    @Override
+    public void addExternalHttpConnector(String connectorName, String socketBinding, String endpoint) {
+        ModelNode address = getSubsystemAddress()
+                .add("http-connector", connectorName);
+
+        ModelNode attributes = new ModelNode();
+        attributes.get("socket-binding").set(socketBinding);
+        attributes.get("endpoint").set(endpoint);
+
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void addExternalRemoteConnector(String name, String socketBinding) {
+        ModelNode address = getSubsystemAddress()
+                .add("remote-connector", name);
+
+        ModelNode attributes = new ModelNode();
+        attributes.get("socket-binding").set(socketBinding);
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void removeExternalHttpConnector(String connectorName) {
+        ModelNode address = getSubsystemAddress()
+                .add("http-connector", connectorName);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void removeExternalRemoteConnector(String connectorName) {
+        ModelNode address = getSubsystemAddress()
+                .add("remote-connector", connectorName);
+        executeOperation(address, REMOVE_OPERATION, null);
+    }
+
+    @Override
+    public void enableMessagingTraces() {
+        final ModelNode attributes = new ModelNode();
+        attributes.get("level").set("TRACE");
+        ModelNode address = PathAddress.parseCLIStyleAddress("/subsystem=logging/logger=org.wildfly.extension.messaging-activemq").toModelNode();
+        try {
+            executeOperation(address, REMOVE_OPERATION, null);
+        } catch (Exception e) {
+        }
+        executeOperation(address, ADD, attributes);
+
+        address = PathAddress.parseCLIStyleAddress("/subsystem=logging/logger=org.apache.activemq.artemis").toModelNode();
+        try {
+            executeOperation(address, REMOVE_OPERATION, null);
+        } catch (Exception e) {
+        }
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void createRemoteConnector(String name, String socketBinding, Map<String, String> params) {
+        ModelNode address = PathAddress.parseCLIStyleAddress(" /subsystem=messaging-activemq/server=default/remote-connector=" + name).toModelNode();
+        ModelNode attributes = new ModelNode();
+        attributes.get("socket-binding").set(socketBinding);
+        if (params != null) {
+            addParams(params, attributes);
+        }
+        try {
+            executeOperation(address, REMOVE_OPERATION, null);
+        } catch (Exception e) {
+        }
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public void createSocketBinding(String name, String interfaceName, int port) {
+        String interfaceValue = interfaceName == null || interfaceName.isEmpty() ? "public" : interfaceName;
+        ModelNode address = PathAddress.parseCLIStyleAddress("/socket-binding-group=standard-sockets/socket-binding=" + name).toModelNode();
+        ModelNode attributes = new ModelNode();
+        attributes.get("interface").set(interfaceValue);
+        attributes.get("port").set(port);
+        try {
+            executeOperation(address, REMOVE_OPERATION, null);
+        } catch (Exception e) {
+        }
+        executeOperation(address, ADD, attributes);
+    }
+
+    @Override
+    public boolean isRemoteBroker() {
+        return false;
+    }
+
+    @Override
+    public void disableSecurity() {
+        final ModelNode operation = new ModelNode();
+        operation.get(OP).set(WRITE_ATTRIBUTE_OPERATION);
+        operation.get(OP_ADDR).set(getServerAddress());
+        operation.get(NAME).set("security-enabled");
+        operation.get(VALUE).set(false);
+
+        try {
+            execute(client, operation);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void enableSecurity() {
+        final ModelNode operation = new ModelNode();
+        operation.get(OP).set(WRITE_ATTRIBUTE_OPERATION);
+        operation.get(OP_ADDR).set(getServerAddress());
+        operation.get(NAME).set("security-enabled");
+        operation.get(VALUE).set(true);
+
+        try {
+            execute(client, operation);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+}

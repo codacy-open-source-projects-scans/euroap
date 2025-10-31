@@ -1,0 +1,21 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<subsystem xmlns="urn:jboss:domain:batch-jberet:3.0">
+    <default-job-repository name="in-memory"/>
+    <default-thread-pool name="batch"/>
+    <restart-jobs-on-resume value="${sysprop:false}"/>
+    <job-repository name="in-memory">
+        <in-memory/>
+    </job-repository>
+
+    <thread-pool name="batch">
+        <max-threads count="${sysprop:10}"/>
+        <keepalive-time time="100" unit="milliseconds"/>
+        <thread-factory name="batch"/>
+    </thread-pool>
+
+    <thread-factory name="batch" group-name="${sysprop:batch}" priority="${sysprop:5}" thread-name-pattern="${sysprop:%i-%g}"/>
+</subsystem>

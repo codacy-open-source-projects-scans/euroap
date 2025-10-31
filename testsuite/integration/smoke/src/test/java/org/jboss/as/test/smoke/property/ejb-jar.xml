@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<ejb-jar xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/ejb-jar_3_1.xsd"
+         version="3.1">
+    <enterprise-beans>
+        <session>
+            <ejb-name>TestSessionBean</ejb-name>
+            <ejb-class>org.jboss.as.test.smoke.property.TestSessionBean</ejb-class>
+            <session-type>Stateless</session-type>
+            <env-entry>
+                <env-entry-name>org.jboss.as.test.smoke.property.TestSessionBean/value</env-entry-name>
+                <env-entry-type>java.lang.String</env-entry-type>
+                <env-entry-value>${from.jboss.props1}${file.separator}${from.jboss.props2}</env-entry-value>
+            </env-entry>
+            <env-entry>
+                <env-entry-name>org.jboss.as.test.smoke.property.TestSessionBean/valueOverride</env-entry-name>
+                <env-entry-type>java.lang.String</env-entry-type>
+                <env-entry-value>${from.jboss.props1}${path.separator}${from.jboss.props2}</env-entry-value>
+            </env-entry>
+        </session>
+    </enterprise-beans>
+
+</ejb-jar>
+
+

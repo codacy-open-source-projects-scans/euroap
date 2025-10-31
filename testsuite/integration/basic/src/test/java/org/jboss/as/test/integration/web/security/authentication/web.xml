@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<web-app version="3.1"
+         xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+
+    <security-constraint>
+        <web-resource-collection>
+            <web-resource-name>Protect all application</web-resource-name>
+            <url-pattern>/*</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <role-name>*</role-name>
+        </auth-constraint>
+    </security-constraint>
+
+    <!-- Configure login to be HTTP Basic -->
+    <login-config>
+        <auth-method>BASIC</auth-method>
+        <realm-name>Application Realm</realm-name>
+    </login-config>
+
+    <security-role>
+        <description>Role required to log in to the Application</description>
+        <role-name>guest</role-name>
+    </security-role>
+</web-app>

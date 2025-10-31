@@ -1,0 +1,195 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.jboss.as.jpa.subsystem;
+
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
+import static org.jboss.as.jpa.messages.JpaLogger.ROOT_LOGGER;
+
+import java.util.Collections;
+import java.util.List;
+
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+
+import org.jboss.as.controller.Extension;
+import org.jboss.as.controller.ExtensionContext;
+import org.jboss.as.controller.ModelVersion;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.SubsystemRegistration;
+import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
+import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
+import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.controller.parsing.ExtensionParsingContext;
+import org.jboss.as.controller.parsing.ParseUtils;
+import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
+import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.jpa.persistenceprovider.PersistenceProviderLoader;
+import org.jboss.dmr.ModelNode;
+import org.jboss.modules.ModuleLoadException;
+import org.jboss.staxmapper.XMLElementReader;
+import org.jboss.staxmapper.XMLElementWriter;
+import org.jboss.staxmapper.XMLExtendedStreamReader;
+import org.jboss.staxmapper.XMLExtendedStreamWriter;
+
+/**
+ * Domain extension used to initialize the Jakarta Persistence subsystem element handlers.
+ *
+ * @author Scott Marlow
+ */
+public class JPAExtension implements Extension {
+
+    public static final String SUBSYSTEM_NAME = "jpa";
+
+    private static final String RESOURCE_NAME = JPAExtension.class.getPackage().getName() + ".LocalDescriptions";
+
+    public static StandardResourceDescriptionResolver getResourceDescriptionResolver(final String... keyPrefix) {
+        StringBuilder prefix = new StringBuilder(SUBSYSTEM_NAME);
+        for (String kp : keyPrefix) {
+            prefix.append('.').append(kp);
+        }
+        return new StandardResourceDescriptionResolver(prefix.toString(), RESOURCE_NAME, JPAExtension.class.getClassLoader(), true, false);
+    }
+    private static final ModelVersion CURRENT_MODEL_VERSION = ModelVersion.create(1, 2, 0);
+
+
+    @Override
+    public void initialize(ExtensionContext context) {
+        SubsystemRegistration registration = context.registerSubsystem(SUBSYSTEM_NAME, CURRENT_MODEL_VERSION);
+        final ManagementResourceRegistration nodeRegistration = registration.registerSubsystemModel(new JPADefinition());
+        nodeRegistration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
+        registration.registerXMLElementWriter(new JPASubsystemElementParser1_1());
+
+
+
+        try {
+            PersistenceProviderLoader.loadDefaultProvider();
+        } catch (ModuleLoadException e) {
+            ROOT_LOGGER.errorPreloadingDefaultProvider(e);
+        }
+
+        if (context.isRuntimeOnlyRegistrationValid()) {
+            registration.registerDeploymentModel(new JPADeploymentDefinition());
+        }
+    }
+
+    @Override
+    public void initializeParsers(ExtensionParsingContext context) {
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.JPA_1_1.getUriString(), JPASubsystemElementParser1_1::new);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.JPA_1_0.getUriString(), JPASubsystemElementParser1_0::new);
+    }
+
+    static class JPASubsystemElementParser1_1 implements XMLStreamConstants, XMLElementReader<List<ModelNode>>,
+        XMLElementWriter<SubsystemMarshallingContext> {
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void readElement(XMLExtendedStreamReader reader, List<ModelNode> list) throws XMLStreamException {
+            ModelNode subsystemAdd = null;
+            while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
+                final Element element = Element.forName(reader.getLocalName());
+                Namespace readerNS = Namespace.forUri(reader.getNamespaceURI());
+
+                if (element == Element.JPA) {
+                    subsystemAdd = parseJPA(reader, readerNS);
+                } else {
+                    throw ParseUtils.unexpectedElement(reader);
+                }
+            }
+            if (subsystemAdd == null) {
+                throw ParseUtils.missingRequiredElement(reader, Collections.singleton(Element.JPA.getLocalName()));
+            }
+            list.add(subsystemAdd);
+        }
+
+        private ModelNode parseJPA(XMLExtendedStreamReader reader, Namespace readerNS) throws XMLStreamException {
+            final ModelNode operation = Util.createAddOperation(PathAddress.pathAddress(PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME)));
+
+            int count = reader.getAttributeCount();
+            for (int i = 0; i < count; i++) {
+                final String value = reader.getAttributeValue(i);
+                final Attribute attribute = Attribute.forName(reader.getAttributeLocalName(i));
+                switch (attribute) {
+                    case DEFAULT_DATASOURCE_NAME: {
+                        JPADefinition.DEFAULT_DATASOURCE.parseAndSetParameter(value, operation, reader);
+                        break;
+                    }
+                    case DEFAULT_EXTENDEDPERSISTENCEINHERITANCE_NAME:
+                        JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE.parseAndSetParameter(value, operation, reader);
+                        break;
+                    default: {
+                        throw ParseUtils.unexpectedAttribute(reader, i);
+                    }
+                }
+            }
+            // Require no content
+            ParseUtils.requireNoContent(reader);
+
+            return operation;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void writeContent(final XMLExtendedStreamWriter writer, final SubsystemMarshallingContext context) throws
+            XMLStreamException {
+
+            ModelNode node = context.getModelNode();
+            context.startSubsystemElement(Namespace.JPA_1_1.getUriString(), false);
+            writer.writeStartElement(Element.JPA.getLocalName());
+            JPADefinition.DEFAULT_DATASOURCE.marshallAsAttribute(node, writer);
+            JPADefinition.DEFAULT_EXTENDEDPERSISTENCE_INHERITANCE.marshallAsAttribute(node, writer);
+            writer.writeEndElement();
+            writer.writeEndElement();
+        }
+    }
+
+    static class JPASubsystemElementParser1_0 implements XMLStreamConstants, XMLElementReader<List<ModelNode>> {
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void readElement(XMLExtendedStreamReader reader, List<ModelNode> list) throws XMLStreamException {
+            ModelNode subsystemAdd = null;
+
+            while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
+                final Element element = Element.forName(reader.getLocalName());
+                Namespace readerNS = Namespace.forUri(reader.getNamespaceURI());
+
+                if (element == Element.JPA) {
+                    subsystemAdd = parseJPA(reader, readerNS);
+                } else {
+                    throw ParseUtils.unexpectedElement(reader);
+                }
+            }
+            if (subsystemAdd == null) {
+                throw ParseUtils.missingRequiredElement(reader, Collections.singleton(Element.JPA.getLocalName()));
+            }
+            list.add(subsystemAdd);
+        }
+
+        private ModelNode parseJPA(XMLExtendedStreamReader reader, Namespace readerNS) throws XMLStreamException {
+            final ModelNode operation = Util.createAddOperation(PathAddress.pathAddress(PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME)));
+            int count = reader.getAttributeCount();
+            for (int i = 0; i < count; i++) {
+                final String value = reader.getAttributeValue(i);
+                final Attribute attribute = Attribute.forName(reader.getAttributeLocalName(i));
+                if (attribute == Attribute.DEFAULT_DATASOURCE_NAME) {
+                    JPADefinition.DEFAULT_DATASOURCE.parseAndSetParameter(value, operation, reader);
+                } else {
+                    throw ParseUtils.unexpectedAttribute(reader, i);
+                }
+            }
+            // Require no content
+            ParseUtils.requireNoContent(reader);
+
+            return operation;
+        }
+    }
+}

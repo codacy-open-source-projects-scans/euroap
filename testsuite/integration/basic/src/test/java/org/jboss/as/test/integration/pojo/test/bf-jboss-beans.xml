@@ -1,0 +1,24 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<deployment xmlns="urn:jboss:pojo:7.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="urn:jboss:pojo:7.0 jboss-mc_7_0.xsd">
+
+    <bean-factory name="BF" class="org.jboss.as.test.integration.pojo.support.B">
+        <property name="c"><inject bean="C"/></property>
+    </bean-factory>
+
+    <bean name="C" class="org.jboss.as.test.integration.pojo.support.C"/>
+
+    <bean name="D" class="org.jboss.as.test.integration.pojo.support.D">
+        <create>
+            <parameter><inject bean="BF"/></parameter>
+        </create>
+        <start>
+            <parameter><inject bean="BF"/></parameter>
+        </start>
+    </bean>
+
+</deployment>

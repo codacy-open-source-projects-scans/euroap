@@ -1,0 +1,13 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<jboss xmlns="urn:jboss:1.0">
+    <batch xmlns="urn:jboss:domain:batch-jberet:2.0">
+        <job-repository>
+            <named name="batch-in-mem"/>
+        </job-repository>
+        <thread-pool name="deployment-thread-pool"/>
+    </batch>
+</jboss>

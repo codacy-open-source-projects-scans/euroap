@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.wildfly</groupId>
+        <artifactId>wildfly-testsuite</artifactId>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>39.0.0.Beta1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>wildfly-ts-preview</artifactId>
+    <packaging>pom</packaging>
+
+    <name>WildFly Preview Test Suite (parent)</name>
+
+    <properties>
+        <!-- Current module's directory. Will automatically pick up sub-module's basedir. -->
+        <jbossas.ts.submodule.dir>${basedir}</jbossas.ts.submodule.dir>
+        <!-- Integration module's directory. To be overriden in sub-modules. -->
+        <jbossas.ts.integ.dir>${basedir}</jbossas.ts.integ.dir>
+        <!-- This project's testsuite dir. To be changed for every submodule (until we figure out how to do it automatically). -->
+        <jbossas.ts.dir>${jbossas.ts.integ.dir}/..</jbossas.ts.dir>
+        <!-- This project's root dir. -->
+        <jbossas.project.dir>${jbossas.ts.dir}/..</jbossas.project.dir>
+        <!-- Relative path to testsuite/shared -->
+        <shared.path>../../shared</shared.path>
+        <jvm.args.dirs>
+            -Djbossas.ts.submodule.dir=${jbossas.ts.submodule.dir}
+            -Djbossas.ts.integ.dir=${jbossas.ts.integ.dir}
+            -Djbossas.ts.dir=${jbossas.ts.dir}
+            -Djbossas.project.dir=${jbossas.project.dir}
+            -Djboss.dist=${jboss.dist}
+            -Djava.io.tmpdir=${basedir}/target
+        </jvm.args.dirs>
+        <server.jvm.args>${surefire.system.args} ${jvm.args.ip.server} ${jvm.args.other} ${jvm.args.timeouts} -Dnode0=${node0} -Dnode1=${node1} -Dmcast=${mcast} -Dmcast.ttl=${mcast.ttl} ${jvm.args.dirs} ${extra.server.jvm.args}</server.jvm.args>
+
+        <!-- Used to provide an absolute location for the distribution under test. -->
+        <jboss.dist>${jbossas.project.dir}/${wildfly.build.output.dir}</jboss.dist>
+        <jboss.home>${jboss.dist}</jboss.home>
+
+        <ts.skipTests>${skipTests}</ts.skipTests>
+
+        <wildfly.dir>${project.build.directory}/wildfly</wildfly.dir>
+
+        <!-- Use the WildFly Preview EE dependency set. Child modules that test expansion capabilities can override. -->
+        <dependency.management.import.artifact>wildfly-preview-ee-bom</dependency.management.import.artifact>
+        <dependency.management.import.test.artifact>wildfly-preview-test-bom</dependency.management.import.test.artifact>
+        <container.java.home>${java.home}</container.java.home>
+        
+        <ts.config-as.copy-mgmt-users.phase>generate-test-resources</ts.config-as.copy-mgmt-users.phase>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>wildfly-preview-test-expansion-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+
+        <!-- Common ARQ related dependencies. -->
+        <dependency>
+            <groupId>org.jboss.arquillian.junit</groupId>
+            <artifactId>arquillian-junit-container</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.shrinkwrap</groupId>
+            <artifactId>shrinkwrap-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.shrinkwrap</groupId>
+            <artifactId>shrinkwrap-impl-base</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.shrinkwrap.descriptors</groupId>
+            <artifactId>shrinkwrap-descriptors-impl-javaee</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.arquillian</groupId>
+            <artifactId>wildfly-arquillian-container-managed</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.arquillian</groupId>
+            <artifactId>wildfly-arquillian-protocol-jmx</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <profiles>
+
+
+        <profile>
+        <id>basic.preview.tests.profile</id>
+            <activation>
+                <property>
+                    <name>!no.preview.integration.tests</name>
+                </property>
+                <jdk>[17,)</jdk>
+            </activation>
+            <modules>
+                <module>basic</module>
+                <module>expansion</module>
+            </modules>
+        </profile>
+
+        <profile>
+            <id>preview.profile</id>
+            <activation><property><name>ts.preview</name></property></activation>
+            <properties>
+                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
+                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
+            </properties>
+            <modules>
+                <module>basic</module>
+                <module>expansion</module>
+                <module>manualmode</module>
+            </modules>
+        </profile>
+
+        <profile>
+            <id>bootablejar.preview.profile</id>
+            <activation>
+                <property>
+                    <name>ts.bootable.preview</name>
+                </property>
+                <jdk>[17,)</jdk>
+            </activation>
+            <properties>
+                <!-- Re-enable the default surefire execution -->
+                <surefire.default-test.phase>test</surefire.default-test.phase>
+            </properties>
+            <modules>
+                <module>basic</module>
+                <module>expansion</module>
+                <!--<module>clustering</module>
+                <module>microprofile</module>
+                <module>microprofile-tck</module>
+                <module>elytron-oidc-client</module>-->
+            </modules>
+        </profile>
+
+        <!-- Run all tests on -DallTests. -->
+        <profile>
+            <id>ts.preview.allGroups</id>
+            <activation>
+                <property><name>allTests</name></property>
+                <jdk>[17,)</jdk>
+            </activation>
+            <modules>
+                <module>basic</module>
+                <module>expansion</module>
+                <module>manualmode</module>
+            </modules>
+        </profile>
+        <!-- Define ts.integration uber-group. -->
+        <profile>
+            <id>ts.preview.allGroupsIntegration</id>
+            <activation>
+                <property><name>ts.integration</name></property>
+                <jdk>[17,)</jdk>
+            </activation>
+            <modules>
+                <module>basic</module>
+                <module>expansion</module>
+                <module>manualmode</module>
+            </modules>
+        </profile>
+
+        <!-- -Dts.basic -->
+        <profile>
+            <id>ts.preview.group.basic</id>
+            <activation>
+                <property><name>ts.basic</name></property>
+                <jdk>[17,)</jdk>
+            </activation>
+            <modules>
+                <!--<module>ws</module>-->
+                <module>basic</module>
+                <module>expansion</module>
+            </modules>
+        </profile>
+
+        <!-- -Dts.manualmode. -->
+        <profile>
+            <id>ts.integ.group.manualmode</id>
+            <activation><property><name>ts.manualmode</name></property></activation>
+            <modules>
+                <module>manualmode</module>
+            </modules>
+        </profile>
+
+        <!-- -Dts.layers -->
+        <profile>
+            <id>ts.preview.group.layers</id>
+            <activation>
+                <property><name>ts.layers</name></property>
+                <jdk>[17,)</jdk>
+            </activation>
+            <modules>
+                <module>basic</module>
+                <module>expansion</module>
+            </modules>
+        </profile>
+
+    </profiles>
+
+
+    <build>
+        <plugins>
+            <plugin>
+                <!-- This enforcer.skip property was set to true in the properties. However this doesn't work if the
+                     property is passed on the command line. Therefore we need to explicitly skip it.
+                -->
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <!-- General plugin configuration for all integration tests -->
+
+            <!-- Resources plugin. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions combine.children="append">
+                    <!-- Copy users and roles config from shared resources. -->
+                    <execution>
+                        <id>ts.config-as.copy-mgmt-users</id>
+                        <phase>${ts.config-as.copy-mgmt-users.phase}</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <inherited>true</inherited>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/wildfly/standalone/configuration</outputDirectory>
+                            <overwrite>true</overwrite>
+                            <resources>
+                                <resource>
+                                    <directory>${shared.path}/src/main/resources</directory>
+                                    <includes><include>*.properties</include></includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- General surefire configuration. Applies to submodules too. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>${ts.skipTests}</skipTests>
+                    <enableAssertions>true</enableAssertions>
+                 
+                    <!-- Forked process timeout -->
+                    <forkedProcessTimeoutInSeconds>${surefire.forked.process.timeout}</forkedProcessTimeoutInSeconds>
+
+                    <!-- System properties to forked surefire JVM which runs clients. -->
+                    <argLine>${surefire.system.args} ${surefire.memory.args} ${jvm.args.ip.client} ${jvm.args.timeouts}</argLine>
+
+                    <!-- System properties passed to test cases -->
+                    <systemPropertyVariables combine.children="append">
+                        <node0>${node0}</node0>
+                        <node0.escaped>${node0.escaped}</node0.escaped>
+                        <node1>${node1}</node1>
+                        <mcast>${mcast}</mcast>
+                        <mcast.ttl>${mcast.ttl}</mcast.ttl>
+
+                        <node2>${node2}</node2>
+                        <node3>${node3}</node3>
+
+                        <jbossas.ts.submodule.dir>${basedir}</jbossas.ts.submodule.dir>
+                        <jbossas.ts.integ.dir>${jbossas.ts.integ.dir}</jbossas.ts.integ.dir>
+                        <jbossas.ts.dir>${jbossas.ts.dir}</jbossas.ts.dir>
+                        <jbossas.project.dir>${jbossas.project.dir}</jbossas.project.dir>
+                        <jboss.dist>${jboss.dist}</jboss.dist>
+
+                        <!--
+                            Used in arquillian.xml - arguments for all JBoss AS instances.
+                            System properties are duplicated here until ARQ-647 is implemented.
+                        -->
+                        <server.jvm.args>${server.jvm.args}</server.jvm.args>
+                        <cli.jvm.args>${modular.jdk.args} -Dmaven.repo.local=${settings.localRepository}</cli.jvm.args>
+                        <modular.jdk.args>${modular.jdk.args}</modular.jdk.args>
+                        <container.java.home>${container.java.home}</container.java.home>
+                    </systemPropertyVariables>
+
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <configuration>
+                    <skip>${skip.antrun}</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

@@ -1,0 +1,17 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<!-- see org.jboss.as.test.integration.web.jsp.taglib.external.ExternalTagLibTestCase.createExternalTaglibModule -->
+<module name="test.external-tag-lib" xmlns="urn:jboss:module:1.5">
+    <resources>
+        <resource-root path="external-taglib-module.jar"/>
+    </resources>
+    <!-- see org.jboss.as.test.shared.ModuleUtils.createTestModuleWithEEDependencies -->
+    <dependencies>
+        <module name="jakarta.enterprise.api"/>
+        <module name="jakarta.inject.api"/>
+        <module name="jakarta.servlet.api"/>
+        <module name="jakarta.servlet.jsp.api"/>
+    </dependencies>
+</module>

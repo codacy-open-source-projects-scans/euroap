@@ -1,0 +1,21 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
+        
+    <display-name>Test application for injection</display-name>
+    
+    <!--  should be a renaming for the EJB invocation -->
+    <ejb-ref>               
+        <ejb-ref-name>RemoteInterfaceBean</ejb-ref-name>
+        <lookup-name>java:global/ejb-test-ear/ejb/RemoteInterfaceBean!org.jboss.as.test.integration.ejb.injection.ejbref.lookup.RemoteInterface</lookup-name>
+    </ejb-ref> 
+    
+    <servlet-mapping>
+        <servlet-name>jakarta.ws.rs.core.Application</servlet-name>
+        <url-pattern>/rest/*</url-pattern>
+    </servlet-mapping>
+</web-app>

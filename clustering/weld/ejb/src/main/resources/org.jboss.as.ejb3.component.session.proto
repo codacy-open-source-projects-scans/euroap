@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package org.jboss.as.ejb3.component.session;
+
+/**
+ * @TypeId(361)
+ */
+message StatelessSerializedProxy {
+	string	viewName	 = 1;
+}

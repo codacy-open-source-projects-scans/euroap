@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<jboss:ejb-jar
+        xmlns="https://jakarta.ee/xml/ns/jakartaee"
+        xmlns:jboss="urn:jboss:jakartaee:1.0"
+        xmlns:s="urn:security:2.0"
+        version="4.0" >
+
+    <assembly-descriptor>
+        <s:security>
+            <ejb-name>*</ejb-name>
+            <s:missing-method-permissions-deny-access>false</s:missing-method-permissions-deny-access>
+        </s:security>
+    </assembly-descriptor>
+</jboss:ejb-jar>

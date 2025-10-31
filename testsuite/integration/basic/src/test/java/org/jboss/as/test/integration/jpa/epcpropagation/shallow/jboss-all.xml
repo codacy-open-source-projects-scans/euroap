@@ -1,0 +1,10 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<jboss>
+    <jboss-jpa xmlns="http://www.jboss.com/xml/ns/javaee">
+        <extended-persistence inheritance="SHALLOW"/>
+    </jboss-jpa>
+</jboss>

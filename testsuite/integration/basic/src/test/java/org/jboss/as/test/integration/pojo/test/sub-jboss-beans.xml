@@ -1,0 +1,11 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<deployment xmlns="urn:jboss:pojo:7.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="urn:jboss:pojo:7.0 jboss-mc_7_0.xsd">
+
+    <bean name="super" class="org.jboss.as.test.integration.pojo.support.Sub"/>
+
+</deployment>

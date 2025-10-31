@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.wildfly</groupId>
+        <artifactId>wildfly-ts-integ</artifactId>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>39.0.0.Beta1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>wildfly-ts-integ-mp</artifactId>
+    <name>WildFly Test Suite: Integration - MicroProfile TCK</name>
+
+    <packaging>pom</packaging>
+
+    <properties>
+        <jbossas.ts.integ.dir>${basedir}/..</jbossas.ts.integ.dir>
+        <jbossas.ts.dir>${jbossas.ts.integ.dir}/..</jbossas.ts.dir>
+        <jbossas.project.dir>${jbossas.ts.dir}/..</jbossas.project.dir>
+        <wildfly.build.output.dir>build/target/${server.output.dir.prefix}-${server.output.dir.version}</wildfly.build.output.dir>
+        <maven.repo.local>${settings.localRepository}</maven.repo.local>
+        <microprofile.jvm.args>-server -Xms64m -Xmx512m ${modular.jdk.args} -Dmaven.repo.local=${maven.repo.local}</microprofile.jvm.args>
+        <!-- Properties that set the phase used for different plugin executions.
+             Profiles can override the values here to enable/disable executions.
+             A value of 'none' disables the execution; to enable set the value to the
+             normal phase for the goal.
+             This setup allows the bulk of the execution configuration to be in the
+             default build config (and thus shared in different profiles) while
+             still being easily disabled in profiles where it is not wanted. -->
+        <ts.copy-wildfly.phase>generate-test-resources</ts.copy-wildfly.phase>
+        <ts.microprofile-tck-provisioning.phase>none</ts.microprofile-tck-provisioning.phase>
+        <ts.microprofile-tck-glow.phase>none</ts.microprofile-tck-glow.phase>
+        <ts.microprofile-tck-glow.config.name>standalone-microprofile.xml</ts.microprofile-tck-glow.config.name>
+        <ts.microprofile-tck-glow.expected-discovery>FIXME-must-override</ts.microprofile-tck-glow.expected-discovery>
+        <ts.microprofile-tck-glow.verbose>false</ts.microprofile-tck-glow.verbose>
+        <!-- Child modules override this property to control what TCK is used -->
+        <ts.microprofile-tck-tests-dependency>FIXME-must-override</ts.microprofile-tck-tests-dependency>
+        <!-- Use the complete WF dependencyManagement set, not just the default EE set -->
+        <dependency.management.import.artifact>wildfly-standard-expansion-bom</dependency.management.import.artifact>
+        <dependency.management.import.test.artifact>wildfly-standard-test-expansion-bom</dependency.management.import.test.artifact>
+
+        <!-- Properties used in certification script -->
+        <version.config>${version.org.eclipse.microprofile.config.api}</version.config>
+        <version.fault-tolerance>${version.org.eclipse.microprofile.fault-tolerance.api}</version.fault-tolerance>
+        <version.health>${version.org.eclipse.microprofile.health.api}</version.health>
+        <version.jwt>${version.org.eclipse.microprofile.jwt.api}</version.jwt>
+        <version.openapi>${version.org.eclipse.microprofile.openapi}</version.openapi>
+        <version.rest-client>${version.org.eclipse.microprofile.rest.client.api}</version.rest-client>
+        <version.telemetry>${version.org.eclipse.microprofile.telemetry}</version.telemetry>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.wildfly</groupId>
+                <artifactId>${dependency.management.import.test.artifact}</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- TODO confirm if this is needed -->
+        <dependency>
+            <groupId>org.wildfly</groupId>
+            <artifactId>wildfly-naming-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <modules>
+        <module>config</module>
+        <module>fault-tolerance</module>
+        <module>health</module>
+        <module>jwt</module>
+        <module>lra</module>
+        <module>openapi</module>
+        <module>rest-client</module>
+        <module>reactive-messaging</module>
+        <module>reactive-streams-operators</module>
+        <module>telemetry</module>
+        <module>certification</module>
+    </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>ts.copy-wildfly</id>
+                        <!-- Use a property to drive whether this execution is enabled.
+                             Default is 'generate-test-resources', i.e. enabled. -->
+                        <phase>${ts.copy-wildfly.phase}</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.wildfly.glow</groupId>
+                <artifactId>wildfly-glow-arquillian-plugin</artifactId>
+                <configuration>
+                    <feature-packs>
+                        <feature-pack>
+                            <groupId>${testsuite.full.galleon.pack.groupId}</groupId>
+                            <artifactId>${testsuite.full.galleon.pack.artifactId}</artifactId>
+                            <version>${testsuite.full.galleon.pack.version}</version>
+                        </feature-pack>
+                    </feature-packs>
+                    <config-name>${ts.microprofile-tck-glow.config.name}</config-name>
+                    <dependenciesToScan>
+                        <dependency>${ts.microprofile-tck-tests-dependency}</dependency>
+                    </dependenciesToScan>
+                    <surefire-execution-for-included-classes>default-test</surefire-execution-for-included-classes>
+                    <verbose>${ts.microprofile-tck-glow.verbose}</verbose>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>scan-deployments</id>
+                        <goals>
+                            <goal>scan</goal>
+                        </goals>
+                        <phase>${ts.microprofile-tck-glow.phase}</phase>
+                        <configuration>
+                            <expected-discovery>${ts.microprofile-tck-glow.expected-discovery}</expected-discovery>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.wildfly.plugins</groupId>
+                <artifactId>wildfly-maven-plugin</artifactId>
+                <version>${version.org.wildfly.plugin}</version>
+                <configuration>
+                    <overwrite-provisioned-server>true</overwrite-provisioned-server>
+                    <record-provisioning-state>false</record-provisioning-state>
+                    <log-provisioning-time>${galleon.log.time}</log-provisioning-time>
+                    <offline-provisioning>${galleon.offline}</offline-provisioning>
+                    <galleon-options>
+                        <jboss-maven-dist/>
+                        <jboss-fork-embedded>${galleon.fork.embedded}</jboss-fork-embedded>
+                        <optional-packages>passive+</optional-packages>
+                    </galleon-options>
+                    <provisioning-file>target/glow-scan/default-test/provisioning.xml</provisioning-file>
+                </configuration>
+                <executions>
+                    <!-- Provision a server slimmed to only what we want for a particular TCK. -->
+                    <execution>
+                        <id>microprofile-tck-provisioning</id>
+                        <goals>
+                            <goal>provision</goal>
+                        </goals>
+                        <!-- Use a property to drive whether this execution is enabled.
+                             Default is 'none', i.e. disabled. -->
+                        <phase>${ts.microprofile-tck-provisioning.phase}</phase>
+                        <configuration>
+                            <provisioning-dir>${project.build.directory}/wildfly</provisioning-dir>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>bootable-jar-packaging</id>
+                        <configuration>
+                            <bootableJar>true</bootableJar>
+                            <skipDeployment>true</skipDeployment>
+                            <bootableJarName>test-wildfly-microprofile-tck.jar</bootableJarName>
+                        </configuration>
+                        <goals>
+                            <goal>package</goal>
+                        </goals>
+                        <!-- Use a property to drive whether this execution is enabled.
+                             Default is 'none', i.e. disabled. -->
+                        <phase>${ts.bootable-jar-packaging.phase}</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>layers.profile</id>
+            <activation>
+                <property>
+                    <name>ts.layers</name>
+                </property>
+            </activation>
+            <properties>
+                <jboss.dist>${project.build.directory}/wildfly</jboss.dist>
+                <!-- Disable the standard copy-based provisioning -->
+                <ts.copy-wildfly.phase>none</ts.copy-wildfly.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <!-- Override the standard module path that points at the shared module set from the dist -->
+                                <module.path>${project.build.directory}/wildfly/modules</module.path>
+                            </systemPropertyVariables>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <!-- Re-enable the default surefire execution -->
+                                <id>default-test</id>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>standalone.microprofile.profile</id>
+            <activation>
+                <property>
+                    <name>ts.standalone.microprofile</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <executions>
+                            <!--Re-enable the default surefire execution. -->
+                            <execution>
+                                <id>default-test</id>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Test against the ee 9 feature pack -->
+        <profile>
+            <id>preview.test.profile</id>
+            <activation>
+                <property>
+                    <name>ts.preview</name>
+                </property>
+            </activation>
+            <properties>
+                <jboss.dist>${project.build.directory}/wildfly</jboss.dist>
+                <maven.repo.local>${settings.localRepository}</maven.repo.local>
+                <!-- Disable the standard copy-based provisioning -->
+                <ts.copy-wildfly.phase>none</ts.copy-wildfly.phase>
+                <!-- Use the WFP dependencyManagement set.
+                     This is set in this profile in a parent module, but the explicit global override
+                     in this module takes precedence. -->
+                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
+                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <!-- Override the standard module path that points at the shared module set from the dist -->
+                                <module.path>${project.build.directory}/wildfly/modules</module.path>
+                            </systemPropertyVariables>
+                        </configuration>
+                        <executions>
+                            <!--Re-enable the default surefire execution. -->
+                            <execution>
+                                <id>default-test</id>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Profile to turn off execution of various plugins if the testsuite is being run
+             against an external dist (i.e. by using the jboss.dist property to point to one)
+             and that dist does not include the full set of MP functionality. -->
+        <profile>
+            <id>disable.microprofile.profile</id>
+            <activation>
+                <property>
+                    <name>disable.microprofile.tests</name>
+                </property>
+            </activation>
+            <properties>
+                <!-- Disable the standard copy-based provisioning -->
+                <ts.copy-wildfly.phase>none</ts.copy-wildfly.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>default-test</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-maven-plugin</artifactId>
+                        <version>${version.org.wildfly.plugin}</version>
+                        <executions>
+                            <!-- Provision a server slimmed to only what we want for a particular TCK. -->
+                            <execution>
+                                <id>microprofile-tck-provisioning</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Test against bootable jar -->
+        <profile>
+            <id>bootablejar.profile</id>
+            <activation>
+                <property>
+                    <name>ts.bootable</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.arquillian</groupId>
+                    <artifactId>wildfly-arquillian-container-bootable</artifactId>
+                </dependency>
+            </dependencies>
+            <properties>
+                <!-- Disable the standard copy-based provisioning -->
+                <ts.copy-wildfly.phase>none</ts.copy-wildfly.phase>
+                <maven.repo.local>${settings.localRepository}</maven.repo.local>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <!-- Tests against the microprofile-tck bootable JAR  -->
+                        <configuration>
+                            <systemPropertyVariables>
+                                <install.dir>${project.build.directory}/wildfly</install.dir>
+                                <bootable.jar>${project.build.directory}/test-wildfly-microprofile-tck.jar</bootable.jar>
+                                <arquillian.xml>arquillian-bootable.xml</arquillian.xml>
+                            </systemPropertyVariables>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>
+                                    org.wildfly.arquillian:wildfly-arquillian-container-managed
+                                </classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        
+        <!-- Test against bootable jar WildFly Preview -->
+        <profile>
+            <id>bootablejar.preview.profile</id>
+            <activation>
+                <property>
+                    <name>ts.bootable.preview</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.arquillian</groupId>
+                    <artifactId>wildfly-arquillian-container-bootable</artifactId>
+                </dependency>
+            </dependencies>
+            <properties>
+                <jboss.dist>${project.build.directory}/wildfly</jboss.dist>
+                <maven.repo.local>${settings.localRepository}</maven.repo.local>
+                <!-- Disable the standard copy-based provisioning -->
+                <ts.copy-wildfly.phase>none</ts.copy-wildfly.phase>
+                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
+                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <!-- Tests against the microprofile-tck bootable JAR  -->
+                        <configuration>
+                            <systemPropertyVariables>
+                                <install.dir>${project.build.directory}/wildfly</install.dir>
+                                <bootable.jar>${project.build.directory}/test-wildfly-microprofile-tck.jar</bootable.jar>
+                                <arquillian.xml>arquillian-bootable.xml</arquillian.xml>
+                            </systemPropertyVariables>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>
+                                    org.wildfly.arquillian:wildfly-arquillian-container-managed
+                                </classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+</project>

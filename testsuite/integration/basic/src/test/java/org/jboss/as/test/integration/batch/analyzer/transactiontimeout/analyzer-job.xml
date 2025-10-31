@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<job id="chunkPartition" xmlns="http://xmlns.jcp.org/xml/ns/javaee" version="1.0">
+    <step id="jobStep">
+        <chunk>
+            <reader ref="testReader"/>
+            <writer ref="testWriter" />
+        </chunk>
+        <partition>
+            <plan partitions="1" threads="1"/>
+            <analyzer ref="testPartitionAnalyzer"/>
+        </partition>
+        <properties>
+            <property name="jberet.analyzer.txDisabled" value="true"/>
+        </properties>
+    </step>
+
+</job>

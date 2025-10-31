@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" version="2.0">
+    <persistence-unit name="queryresultsaremanaged">
+        <provider>org.jboss.as.test.integration.jpa.mockprovider.skipquerydetach.TestPersistenceProvider</provider>
+        <description>Persistence Unit.</description>
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="jboss.as.jpa.adapterClass" value="org.jboss.as.test.integration.jpa.mockprovider.skipquerydetach.TestAdapter"/>
+            <!-- set skipquerydetach to true so that query results (in non-jta tx) stay associated with the persistence context. -->
+            <property name="wildfly.jpa.skipquerydetach" value="true"/>
+        </properties>
+    </persistence-unit>
+    <persistence-unit name="queryresultsaredetached">
+        <provider>org.jboss.as.test.integration.jpa.mockprovider.skipquerydetach.TestPersistenceProvider</provider>
+        <description>Persistence Unit.</description>
+        <jta-data-source>java:jboss/datasources/ExampleDS</jta-data-source>
+        <properties>
+            <property name="jboss.as.jpa.adapterClass" value="org.jboss.as.test.integration.jpa.mockprovider.skipquerydetach.TestAdapter"/>
+            <!--  wildfly.jpa.skipquerydetach defaults to false, setting just to make it more obvious here -->
+            <property name="wildfly.jpa.skipquerydetach" value="false"/>
+        </properties>
+    </persistence-unit>
+
+</persistence>

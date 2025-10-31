@@ -1,0 +1,13 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<subsystem xmlns="urn:jboss:domain:resource-adapters:1.0">
+    <resource-adapters>
+        <resource-adapter>
+            <transaction-support>Transaction</transaction-support>
+            <archive>wrong-trans.rar</archive>
+        </resource-adapter>
+    </resource-adapters>
+</subsystem>

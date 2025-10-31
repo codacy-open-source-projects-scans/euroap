@@ -1,0 +1,12 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<jboss-deployment-structure>
+    <deployment>
+        <dependencies>
+            <module name="test.custom-config-converters" services="import" annotations="true" />
+        </dependencies>
+    </deployment>
+</jboss-deployment-structure>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<ejb-jar xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/ejb-jar_3_1.xsd"
+         version="3.1">
+    <enterprise-beans>
+        <session>
+            <ejb-name>MessagingEjb</ejb-name>
+            <message-destination-ref>
+                <message-destination-ref-name>myQueue</message-destination-ref-name>
+                <message-destination-link>testDestination</message-destination-link>
+            </message-destination-ref>
+            <message-destination-ref>
+                <message-destination-ref-name>myReplyQueue</message-destination-ref-name>
+                <message-destination-link>testReplyMapping</message-destination-link>
+            </message-destination-ref>
+        </session>
+        
+        <!-- This will be overriden in jboss-ejb3.xml -->
+        <message-driven>
+            <ejb-name>ReplyingMDB</ejb-name>
+            <ejb-class>org.jboss.as.test.integration.ejb.mdb.messagedestination.ReplyingMDB</ejb-class>
+            <activation-config>
+                <activation-config-property>
+                    <activation-config-property-name>destination</activation-config-property-name>
+                    <!-- existing queue but no producer will send something into it -->
+                    <activation-config-property-value>java:/queue/test</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>destinationType</activation-config-property-name>
+                    <activation-config-property-value>jakarta.jms.Queue</activation-config-property-value>
+                </activation-config-property>
+            </activation-config>
+        </message-driven>
+    </enterprise-beans>
+
+
+    <assembly-descriptor>
+        <message-destination>
+            <message-destination-name>testDestination</message-destination-name>
+            <lookup-name>java:jboss/mdbtest/messageDestinationQueue</lookup-name>
+        </message-destination>
+
+        <message-destination>
+            <message-destination-name>testReplyMapping</message-destination-name>
+            <lookup-name>java:jboss/mdbtest/messageDestinationReplyQueue</lookup-name>
+        </message-destination>
+    </assembly-descriptor>
+</ejb-jar>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<ejb-jar xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/ejb-jar_3_2.xsd"
+         version="3.2">
+    <enterprise-beans>
+        <message-driven>
+            <ejb-name>ContainerManagedTransactionNotSupportedMDBWithDD</ejb-name>
+            <ejb-class>org.jboss.as.test.integration.ejb.mdb.cmt.notsupported.ContainerManagedTransactionNotSupportedMDBWithDD</ejb-class>
+            <messaging-type>jakarta.jms.MessageListener</messaging-type>
+            <transaction-type>Container</transaction-type>
+            <message-destination-type>jakarta.jms.Queue</message-destination-type>
+            <activation-config>
+                <activation-config-property>
+                    <activation-config-property-name>destinationLookup</activation-config-property-name>
+                    <activation-config-property-value>java:jboss/queue/cmt-not-supported-dd</activation-config-property-value>
+                </activation-config-property>
+                <activation-config-property>
+                    <activation-config-property-name>destinationType</activation-config-property-name>
+                    <activation-config-property-value>jakarta.jms.Queue</activation-config-property-value>
+                </activation-config-property>
+            </activation-config>
+        </message-driven>
+    </enterprise-beans>
+    <assembly-descriptor>
+        <container-transaction>
+            <method>
+                <ejb-name>ContainerManagedTransactionNotSupportedMDBWithDD</ejb-name>
+                <method-name>onMessage</method-name>
+                <method-params>
+                    <method-param>jakarta.jms.Message</method-param>
+                </method-params>
+            </method>
+            <trans-attribute>NotSupported</trans-attribute>
+        </container-transaction>
+    </assembly-descriptor>
+</ejb-jar>

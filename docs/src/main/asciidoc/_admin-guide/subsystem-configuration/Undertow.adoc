@@ -1,0 +1,579 @@
+[[Undertow]]
+= Undertow Subsystem
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+****
+
+*Web subsystem was replaced in WildFly 8 with Undertow.*
+
+****
+
+There are two main parts to the undertow subsystem, which are server and
+Servlet container configuration, as well as some ancillary items.
+Advanced topics like load balancing and failover are covered on the
+"High Availability Guide". The default configuration does is suitable
+for most use cases and provides reasonable performance settings.
+
+*Required extension:*
+
+[source,xml,options="nowrap"]
+----
+<extension module="org.wildfly.extension.undertow" />
+----
+
+*Basic subsystem configuration example:*
+
+[source,xml,options="nowrap"]
+----
+<subsystem xmlns="urn:jboss:domain:undertow:13.0">
+        <buffer-cache name="default" buffer-size="1024" buffers-per-region="1024" max-regions="10"/>
+        <server name="default-server">
+            <http-listener name="default" socket-binding="http" />
+            <host name="default-host" alias="localhost">
+                <location name="/" handler="welcome-content" />
+            </host>
+        </server>
+        <servlet-container name="default" default-buffer-cache="default" stack-trace-on-error="local-only" >
+            <jsp-config/>
+            <persistent-sessions/>
+        </servlet-container>
+        <handlers>
+            <file name="welcome-content" path="${jboss.home.dir}/welcome-content" directory-listing="true"/>
+        </handlers>
+    </subsystem>
+----
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+|default-server | the default server to use for deployments
+|default-virtual-host | the default virtual host to use for deployments
+|default-servlet-container | the default servlet container to use for deployments
+|instance-id | the id of Undertow. Defaults to "${jboss.node.name}" if undefined
+|[[bookmark-obfuscate-session-route]]obfuscate-session-route | set this to `"true"` to indicate the
+`instance-id` should be obfuscated in routing. This prevents `instance-id` from being sent across
+HTTP connections when serving remote requests with the HTTP invoker.
+|default-security-domain |the default security domain used by web deployments
+|statistics-enabled | set this to true to enable statistics gathering for Undertow subsystem
+|=======================================================================
+
+[NOTE]
+====
+When setting <<bookmark-obfuscate-session-route,`obfuscate-session-route`>> to `"true"`, the server's
+<<bookmark-server-name,`name`>> is used as a salt in the hashing algorithm that obfuscates the value of `instance-id`.
+For that reason, it is strongly advised that the value of the server be changed from `"default-server"` to something
+else, or else it would be easy to reverse engineer the obfuscated route to its original value, using `"default-server"`
+bytes as the salt.
+====
+
+*Dependencies on other subsystems:*
+
+IO Subsystem
+
+[[buffer-cache-configuration]]
+== Buffer cache configuration
+
+The buffer cache is used for caching content, such as static files.
+Multiple buffer caches can be configured, which allows for separate
+servers to use different sized caches.
+
+Buffers are allocated in regions, and are of a fixed size. If you are
+caching many small files then using a smaller buffer size will be
+better.
+
+The total amount of space used can be calculated by multiplying the
+buffer size by the number of buffers per region by the maximum number of
+regions.
+
+[source,xml,options="nowrap"]
+----
+  <buffer-caches>
+    <buffer-cache name="default" buffer-size="1024" buffers-per-region="1024" max-regions="10"/>
+  </buffer-caches>
+----
+
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+
+|buffer-size |The size of the buffers. Smaller buffers allow space to be
+utilised more effectively
+
+|buffers-per-region |The numbers of buffers per region
+
+|max-regions |The maximum number of regions. This controls the maximum
+amount of memory that can be used for caching
+|=======================================================================
+
+[[server-configuration]]
+== Server configuration
+
+A server represents an instance of Undertow. Basically this consists of
+a set of connectors and some configured handlers.
+
+[source,xml,options="nowrap"]
+----
+<server name="default-server" default-host="default-host" servlet-container="default" >
+----
+
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+
+|[[bookmark-server-name]]name| the name of this server
+
+|default-host |the virtual host that will be used if an incoming request
+as no Host: header
+
+|servlet-container |the servlet container that will be used by this
+server, unless is is explicitly overriden by the deployment
+|=======================================================================
+
+[[connector-configuration]]
+=== Listener configuration
+
+Undertow provides HTTP, HTTPS and AJP listeners, which are configured
+per server.
+
+[[common-settings]]
+==== Common settings
+
+The following settings are common to all listeners:
+
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+
+|allow-encoded-slash
+|If a request comes in with encoded / characters (i.e. %2F), will these be decoded.
+
+|allow-equals-in-cookie-value
+|If this is true then Undertow will allow non-escaped equals characters in unquoted cookie values.
+Unquoted cookie values may not contain equals characters. If present the value ends before the
+equals sign. The remainder of the cookie value will be dropped.
+
+|allow-unescaped-characters-in-url
+|If this is true Undertow will accept non-encoded characters that are disallowed by the URI specification.
+This defaults to false, and in general should not be needed as most clients correctly encode characters.
+Note that setting this to true can be considered a security risk, as allowing non-standard characters can 
+allow request smuggling attacks in some circumstances.
+
+|always-set-keep-alive
+|If this is true then a Connection: keep-alive header will be added to responses, even when it is not
+strictly required by the specification.
+
+|buffer-pipelined-data
+|If we should buffer pipelined requests.
+
+|buffer-pool
+|The listeners buffer pool
+
+|certificate-forwarding
+|If certificate forwarding should be enabled. If this is enabled then the listener will take the certificate
+from the SSL_CLIENT_CERT attribute. This should only be enabled if behind a proxy, and the proxy is
+configured to always set these headers.
+
+|decode-url
+|If this is true then the parser will decode the URL and query parameters using the selected character
+encoding (UTF-8 by default). If this is false they will not be decoded. This will allow a later handler to
+decode them into whatever charset is desired.
+
+|disallowed-methods
+|A comma separated list of HTTP methods that are not allowed
+
+|enable-http2
+|Enables HTTP2 support for this listener
+
+|enabled (Deprecated)
+|If the listener is enabled
+
+|http2-enable-push
+|If server push is enabled for this connection
+
+|http2-header-table-size
+|The size of the header table used for HPACK compression, in bytes. This amount of memory will be allocated
+per connection for compression. Larger values use more memory but may give better compression.
+
+|http2-initial-window-size
+|The flow control window size that controls how quickly the client can send data to the server
+
+|http2-max-concurrent-streams
+|The maximum number of HTTP/2 streams that can be active at any time on a single connection
+
+|http2-max-frame-size
+|The max HTTP/2 frame size
+
+|http2-max-header-list-size
+|The maximum size of request headers the server is prepared to accept
+
+|max-buffered-request-size
+|Maximum size of a buffered request, in bytes. Requests are not usually buffered, the most common case is 
+when performing SSL renegotiation for a POST request, and the post data must be fully buffered in order 
+to perform the renegotiation.
+
+|max-connections
+|The maximum number of concurrent connections. Only values greater than 0 are allowed. For unlimited
+connections simply undefine this attribute value.
+
+|max-cookies
+|The maximum number of cookies that will be parsed. This is used to protect against hash vulnerabilities.
+
+|max-header-size
+|The maximum size of a http request header, in bytes.
+
+|max-headers
+|The maximum number of headers that will be parsed. This is used to protect against hash vulnerabilities.
+
+|max-parameters
+|The maximum number of parameters that will be parsed. This is used to protect against hash vulnerabilities.
+This applies to both query parameters, and to POST data, but is not cumulative (i.e. you can potentially
+have max parameters * 2 total parameters).
+
+|max-post-size
+|The maximum size of a post that will be accepted, in bytes.
+
+|no-request-timeout
+|The length of time in milliseconds that the connection can be idle before it is closed by the container.
+
+|proxy-address-forwarding
+|Enables  handling of x-forwarded-host header (and other x-forwarded-* headers) and use this header information
+to set the remote address. This should only be used behind a trusted proxy that sets these headers otherwise
+a remote user can spoof their IP address.
+
+|proxy-protocol
+|If this is true then the listener will use the proxy protocol v1, as defined by 
+https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt. This option MUST only be enabled for listeners 
+that are behind a load balancer that supports the same protocol.
+
+|read-timeout
+|Configure a read timeout for a socket, in milliseconds.  If the given amount of time elapses without a 
+successful read taking place, the socket's next read will throw a {@link ReadTimeoutException}.
+
+|receive-buffer
+|The receive buffer size, in bytes.
+
+|record-request-start-time
+|If this is true then Undertow will record the request start time, to allow for request time to be logged.
+This has a small but measurable performance impact
+
+|request-parse-timeout
+|The maximum amount of time (in milliseconds) that can be spent parsing the request
+
+|require-host-http11
+|Require that all HTTP/1.1 requests have a 'Host' header, as per the RFC. IF the request does not include
+this header it will be rejected with a 403.
+
+|resolve-peer-address
+|Enables host dns lookup
+
+|rfc6265-cookie-validation
+|If cookies should be validated to ensure they comply with RFC6265.
+
+|secure
+|If this is true then requests that originate from this listener are marked as secure, even if the request
+is not using HTTPS.
+
+|send-buffer
+|The send buffer size, in bytes.
+
+|socket-binding
+|The listener socket binding
+
+|tcp-backlog
+|Configure a server with the specified backlog.
+
+|tcp-keep-alive
+|Configure a channel to send TCP keep-alive messages in an implementation-dependent manner.
+
+|url-charset
+|URL charset
+
+|worker
+|The listeners XNIO worker
+
+|write-timeout
+|Configure a write timeout for a socket, in milliseconds.  If the given amount of time 
+elapses without a successful write taking place, the socket's next write will throw
+a {@link WriteTimeoutException}.
+
+|=======================================================================
+
+[[http-connector]]
+==== HTTP listener
+The HTTPS listener provides access to the server using unencrypted requests and responses.
+
+[source,xml,options="nowrap"]
+----
+<http-listener name="default" socket-binding="http"  />
+----
+
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+
+|redirect-socket
+|If this listener is supporting non-SSL requests, and a request is received for which a matching 
+<security-constraint> requires SSL transport, undertow will automatically redirect the request to the 
+socket binding port specified here.
+
+|=======================================================================
+
+[[https-listener]]
+==== HTTPS listener
+
+The HTTPS listener provides secure access to the server. The most important
+configuration option is `ssl-context`, which references a pre-configured
+SSL Context instance.
+
+[source,xml,options="nowrap"]
+----
+<https-listener name="https" socket-binding="https" ssl-context="applicationSSC" enable-http2="true"/>
+----
+
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+
+|enable-spdy (Deprecated) 
+|Enables SPDY support for this listener. This has been deprecated and has no effect, HTTP/2 should be used instead
+
+|enabled-cipher-suites (Deprecated)
+|Where an SSLContext is referenced it should be configured with the cipher suites to be supported.
+
+|enabled-protocols (Deprecated)
+|Configures SSL protocols
+
+|security-realm (Deprecated)
+|The listeners security realm
+
+|ssl-context
+|Reference to the SSLContext to be used by this listener.
+
+|ssl-session-cache-size (Deprecated)
+|The maximum number of active SSL sessions
+
+|ssl-session-timeout (Deprecated)
+|The timeout for SSL sessions, in seconds
+
+|verify-client (Deprecated)
+|The desired SSL client authentication mode for SSL channels
+
+|=======================================================================
+
+[[ajp-listener]]
+==== AJP listener
+
+The AJP listener supports requests coming in via load balancers that use the AJP protocol to communicate with the servers they balance.
+
+[source,xml,options="nowrap"]
+----
+<ajp-listener name="default" socket-binding="ajp" />
+----
+
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+
+|allowed-request-attributes-pattern
+|Pattern which will be used to match custom AJP attributes that should be allowed as part of a request. Value is a simple java regex. The `context`,`servlet_path`,`remote_user`, `auth_type`, `query_string`, `route`, `ssl_cert`, `ssl_cipher`, `ssl_session`, `req_attribute`, `ssl_key_size`, `secret` and `stored_method` attributes are always supported and do not need to be specified.
+
+|max-ajp-packet-size
+|The maximum supported size of AJP packets. If this is modified it has to be changed on both the load balancer and the backend server.
+
+|redirect-socket
+|If this listener is supporting non-SSL requests, and a request is received for which a matching
+<security-constraint> requires SSL transport, undertow will automatically redirect the request to the
+socket binding port specified here.
+
+|scheme
+|The listener scheme, which can be HTTP or HTTPS. By default, the scheme will be taken from the incoming AJP request.
+
+|=======================================================================
+
+[[host-configuration]]
+=== Host configuration
+
+The host element corresponds to a virtual host.
+
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+
+|name |The virtual host name
+
+|alias |A whitespace separated list of additional host names that should
+be matched
+
+|default-web-module |The name of a deployment that should be used to
+serve up requests that do not match anything.
+
+|queue-requests-on-start| If requests should be queued on start for this host. If this is set to false the default
+response code will be returned instead.
+
+Note: If a <<non-graceful-startup>> is requested, and the queue-requests-on-start attribute is not set, requests will NOT be
+queued despite the default value of true for the property. In the instance of a non-graceful startup, non-queued requests
+are required. However, if non-graceful is configured, but queue-requests-on-start is explicitly set to true, then requests
+will be queued, effectively disabling the non-graceful mode for requests to that host.
+
+|=======================================================================
+
+==== Console Access Logging
+
+Each host allows for access logging to the console which writes structured data in JSON format. This only writes to
+`stdout` and is a single line of JSON structured data.
+
+The `attributes` management model attribute is used to determine which exchange attributes should be logged. This is
+similar to the `pattern` used for traditional access logging. The main difference being since the data is structured
+the ability to use defined keys is essential.
+
+A `metadata` attribute also exists which allows extra metadata to be added to the output. The value of the attribute is
+a set of arbitrary key/value pairs. The values can include management model expressions, which must be resolvable when
+the console access log service is started. The value is resolved once per start or reload of the server.
+
+
+===== CLI Examples
+
+.add-console-access-logging.cli
+----
+/subsystem=undertow/server=default-server/host=default-host/setting=console-access-log:add
+----
+
+.complex-add-console-access-logging.cli
+----
+/subsystem=undertow/server=default-server/host=default-host/setting=console-access-log:add(metadata={"@version"="1", "qualifiedHostName"=${jboss.qualified.host.name:unknown}}, attributes={bytes-sent={}, date-time={key="@timestamp", date-format="yyyy-MM-dd'T'HH:mm:ssSSS"}, remote-host={}, request-line={}, response-header={key-prefix="responseHeader", names=["Content-Type"]}, response-code={}, remote-user={}})
+----
+
+[source,json]
+----
+{
+    "eventSource":"web-access",
+    "hostName":"default-host",
+    "@version":"1",
+    "qualifiedHostName":"localhost.localdomain",
+    "bytesSent":1504,
+    "@timestamp":"2019-05-02T11:57:37123",
+    "remoteHost":"127.0.0.1",
+    "remoteUser":null,
+    "requestLine":"GET / HTTP/2.0",
+    "responseCode":200,
+    "responseHeaderContent-Type":"text/html"
+}
+----
+
+NOTE: The above JSON is formatted only for readability. The output will be on a single line.
+
+
+[[servlet-container-configuration]]
+== Servlet container configuration
+
+The servlet-container element corresponds to an instance of an Undertow
+Servlet container. Most servers will only need a single servlet
+container, however there may be cases where it makes sense to define
+multiple containers (in particular if you want applications to be
+isolated, so they cannot dispatch to each other using the
+RequestDispatcher. You can also use multiple Servlet containers to serve
+different applications from the same context path on different virtual
+hosts).
+
+[cols=",",options="header"]
+|=======================================================================
+|Attribute |Description
+
+|allow-non-standard-wrappers |The Servlet specification requires
+applications to only wrap the request/response using wrapper classes
+that extend from the ServletRequestWrapper and ServletResponseWrapper
+classes. If this is set to true then this restriction is relaxed.
+
+|default-buffer-cache |The buffer cache that is used to cache static
+resources in the default Servlet.
+
+|stack-trace-on-error |Can be either all, none, or local-only. When set
+to none Undertow will never display stack traces. When set to All
+Undertow will always display them (not recommended for production use).
+When set to local-only Undertow will only display them for requests from
+local addresses, where there are no headers to indicate that the request
+has been proxied. Note that this feature means that the Undertow error
+page will be displayed instead of the default error page specified in
+web.xml.
+
+|default-encoding |The default encoding to use for requests and
+responses.
+
+|use-listener-encoding |If this is true then the default encoding will
+be the same as that used by the listener that received the request.
+
+| preserve-path-on-forward | If this is `true`, the return values of the
+`getServletPath()`, `getRequestURL()` and `getRequestURI()` methods from
+ `HttpServletRequest` will be unchanged following a
+ `RequestDispatcher.forward()` call, and point to the original resource requested.
+If `false`, following the `RequestDispatcher.forward()` call, they will
+point to the resource being forwarded to.
+
+
+|=======================================================================
+
+[[Jakarta-Server-Pages-configuration]]
+=== Jakarta Server Pages configuration
+
+[[session-cookie-configuration]]
+=== Session Cookie Configuration
+
+This allows you to change the attributes of the session cookie.
+
+[cols=",",options="header"]
+|======================================
+|Attribute |Description
+|name |The cookie name
+|domain |The cookie domain
+|http-only |If the cookie is HTTP only
+|secure |If the cookie is marked secure
+|max-age |The max age of the cookie
+|======================================
+
+[[affinity-cookie-configuration]]
+=== Affinity Cookie Configuration
+
+This allows you to change the attributes of the affinity cookie.
+If the affinity cookie is configured, the affinity will not be appended to the session ID, but will be sent via the configured cookie name.
+
+[cols=",",options="header"]
+|======================================
+|Attribute |Description
+|name (required) |The affinity cookie name
+|domain |The affinity cookie domain
+|http-only |If the affinity cookie is HTTP only
+|secure |If the affinity cookie is marked secure
+|max-age |The max age of the affinity cookie
+|======================================
+
+[[persistent-session-configuration]]
+=== Persistent Session Configuration
+
+Persistent sessions allow session data to be saved across redeploys and
+restarts. This feature is enabled by adding the persistent-sessions
+element to the server config. This is mostly intended to be a
+development time feature.
+
+If the path is not specified then session data is stored in memory, and
+will only be persistent across redeploys, rather than restarts.
+
+[cols=",",options="header"]
+|======================================================
+|Attribute |Description
+|path |The path to the persistent sessions data
+|relative-to |The location that the path is relevant to
+|======================================================
+
+:leveloffset: +1
+
+include::Undertow_AJP_listeners.adoc[]
+
+include::Undertow_using_as_a_Load_Balancer.adoc[]
+
+:leveloffset: -1

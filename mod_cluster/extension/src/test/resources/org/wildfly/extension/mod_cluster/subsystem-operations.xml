@@ -1,0 +1,14 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<subsystem xmlns="urn:jboss:domain:modcluster:6.0">
+    <proxy name="default"
+           listener="ajp"
+           proxies="proxy1">
+        <dynamic-load-provider>
+            <load-metric type="cpu"/>
+        </dynamic-load-provider>
+    </proxy>
+</subsystem>

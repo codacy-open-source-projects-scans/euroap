@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package org.jboss.weld.bean;
+
+import "org.wildfly.clustering.marshalling.protostream.proto";
+
+/**
+ * @TypeId(420)
+ */
+message ManagedBeanIdentifier {
+	org.wildfly.clustering.marshalling.protostream.Any	identifier	 = 1;
+}
+
+/**
+ * @TypeId(421)
+ */
+message StringBeanIdentifier {
+	string	value	 = 1;
+}

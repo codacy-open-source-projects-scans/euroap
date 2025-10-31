@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<module xmlns="urn:jboss:module:1.5" name="org.jboss.ironjacamar.ra16out" slot="main">
+
+    <resources>
+        <resource-root path="."/>
+        <resource-root path="ra16out.jar"/>
+        <!-- Insert resources here -->
+    </resources>
+
+    <dependencies>
+        <module name="jakarta.resource.api"/>
+        <module name="jakarta.validation.api"/>
+        <module name="org.hibernate.validator"/>
+        <module name="org.jboss.as.naming"/>
+        <module name="org.jboss.as.transactions"/>
+        <module name="org.jboss.jboss-transaction-spi"/>
+        <module name="org.jboss.ironjacamar.api"/>
+        <module name="org.jboss.logging"/>
+        <module name="org.jboss.threads"/>
+        <module name="jakarta.jms.api"/>
+        <module name="org.wildfly.common"/>
+    </dependencies>
+</module>

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.wildfly</groupId>
+        <artifactId>wildfly-parent</artifactId>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>39.0.0.Beta1-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <groupId>org.wildfly.bom.builder</groupId>
+    <artifactId>wildfly</artifactId>
+
+    <packaging>pom</packaging>
+
+    <name>WildFly BOM Builders</name>
+
+    <properties>
+        <!-- the BOMs built's artifactId prefix-->
+        <bomArtifactIdPrefix>wildfly</bomArtifactIdPrefix>
+        <!-- overridable channel versions -->
+        <version.boms.channel.ee>${ee.maven.version}</version.boms.channel.ee>
+        <version.boms.channel.full>${full.maven.version}</version.boms.channel.full>
+    </properties>
+
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>http://repository.jboss.org/licenses/apache-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.wildfly.plugins</groupId>
+                    <artifactId>wildfly-bom-builder-plugin</artifactId>
+                    <version>${version.org.wildfly.bom-builder-plugin}</version>
+                    <configuration>
+                        <!-- configuration common to all user BOMs -->
+                        <generateLicenses>true</generateLicenses>
+                        <includeRepositories>
+                            <id>jboss-public-repository-group</id>
+                        </includeRepositories>
+                    </configuration>
+                </plugin>
+                <!-- The WildFly plugin deploys your war to a local WildFly container -->
+                <!-- To use, set the JBOSS_HOME environment variable and
+                    run: mvn package wildfly:deploy -->
+                <plugin>
+                    <groupId>org.wildfly.plugins</groupId>
+                    <artifactId>wildfly-maven-plugin</artifactId>
+                    <version>${version.org.wildfly.plugin}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <modules>
+        <module>server</module>
+    </modules>
+
+    <profiles>
+        <profile>
+            <id>base-feature-pack-build</id>
+            <activation>
+                <property>
+                    <name>!no.base.build</name>
+                </property>
+            </activation>
+            <modules>
+                <module>client</module>
+                <module>tools</module>
+            </modules>
+        </profile>
+
+        <!--
+             Modules in this tree attach an artifact (bom-pom.xml) under a different
+             Maven GA from the module's GA.
+             1) Disable the jboss-parent pom's jboss-release profile use of maven-gpg-plugin
+             for this one as it can't handle that; we need to use wildfly-maven-gpg-plugin
+             to deal with this.
+             2) Work around the nxrm3-maven-plugin's staging-deploy mojo's inability to directly
+             POST these artifacts to the remote repository.
+        -->
+        <profile>
+            <id>jboss-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>gpg-sign</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.wildfly</groupId>
+                        <artifactId>wildfly-maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>gpg-sign</id>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nxrm3-maven-plugin</artifactId>
+                        <extensions>true</extensions>
+                        <executions>
+                            <!--
+                                 The staging-deploy mojo can't deal with directly deploying this project's artifacts
+                                 to a remote repo, because different artifacts have different maven GAs.
+                                 So, we configure it to stage locally, and then in a subsequent execution we upload.
+                                 The local staging writes a proper repo file layout, which the upload mojo
+                                 uses to determine the GAV info for what it uploads.
+                            -->
+                            <execution>
+                                <id>nexus-deploy</id>
+                                <configuration>
+                                    <stageLocally>true</stageLocally>
+                                    <altStagingDirectory>${project.build.directory}/nexus-staging</altStagingDirectory>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>nexus-upload</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>upload</goal>
+                                </goals>
+                                <configuration>
+                                    <altStagingDirectory>${project.build.directory}/nexus-staging</altStagingDirectory>
+                                    <repository>${nexus.repository.staging}</repository>
+                                    <tag>${nexus.staging.tag}</tag>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

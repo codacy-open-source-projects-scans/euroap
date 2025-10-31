@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package org.jboss.as.network;
+
+import "java.net.proto";
+
+// IDs: 330 - 334
+
+/**
+ * @TypeId(330)
+ */
+message ClientMapping {
+	java.net.InetAddress	address = 1;
+	int32	sourceMask	= 2;
+	string	destAddress	= 3;
+	int32	destPort	= 4;
+}

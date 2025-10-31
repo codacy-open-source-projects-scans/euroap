@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package org.jboss.msc.service;
+
+import "java.lang.proto";
+
+// IDs: 150 - 154
+
+/**
+ * @TypeId(150)
+ */
+message ServiceName {
+	string	name	= 1;
+}
+
+/**
+ * @TypeId(151)
+ */
+message StartException {
+	java.lang.Class	exceptionClass	= 1;
+	string	message	= 2;
+	java.lang.Throwable	cause	= 3;
+	java.lang.StackTraceElement	stackTraceElement	= 4;
+	java.lang.Throwable	suppressed	= 5;
+}
+
+/**
+ * @TypeId(152)
+ */
+message ServiceNotFoundException {
+	java.lang.Class	exceptionClass	= 1;
+	string	message	= 2;
+	java.lang.Throwable	cause	= 3;
+	repeated	java.lang.StackTraceElement	stackTraceElement	= 4;
+	repeated	java.lang.Throwable	suppressed	= 5;
+}

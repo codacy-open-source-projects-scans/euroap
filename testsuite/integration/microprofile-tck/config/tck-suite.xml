@@ -1,0 +1,17 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+
+<suite name="microprofile-config-TCK" verbose="2" configfailurepolicy="continue" >
+
+    <test name="microprofile-config TCK">
+        <packages>
+            <package name="org.eclipse.microprofile.config.tck.*">
+            </package>
+        </packages>
+    </test>
+
+</suite>

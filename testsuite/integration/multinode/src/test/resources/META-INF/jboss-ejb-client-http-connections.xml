@@ -1,0 +1,11 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<jboss-ejb-client xmlns="urn:jboss:ejb-client:1.4">
+    <client-context default-compression="-1">
+        <http-connections>
+            <http-connection uri="http://localhost:8180/wildfly-services"/>
+        </http-connections>
+    </client-context>
+</jboss-ejb-client>

@@ -1,0 +1,21 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<server xmlns="urn:jboss:service:7.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="urn:jboss:service:7.0 jboss-service_7_0.xsd">
+
+    <!-- Intentionally listing multiple MBean services (backed by the same MBean implementation) to reproduce a deadlock noted in the
+        discussion here https://developer.jboss.org/thread/251092 -->
+    <mbean name="jboss:name=mbean-startup-jndi-bind-1" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+    <mbean name="jboss:name=mbean-startup-jndi-bind-2" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+    <mbean name="jboss:name=mbean-startup-jndi-bind-3" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+    <mbean name="jboss:name=mbean-startup-jndi-bind-4" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+    <mbean name="jboss:name=mbean-startup-jndi-bind-5" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+    <mbean name="jboss:name=mbean-startup-jndi-bind-6" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+    <mbean name="jboss:name=mbean-startup-jndi-bind-7" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+    <mbean name="jboss:name=mbean-startup-jndi-bind-8" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+    <mbean name="jboss:name=mbean-startup-jndi-bind-9" code="org.jboss.as.test.integration.sar.JNDIBindingService" />
+
+</server>

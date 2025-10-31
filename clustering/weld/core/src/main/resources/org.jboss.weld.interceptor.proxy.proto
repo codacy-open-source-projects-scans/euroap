@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package org.jboss.weld.interceptor.proxy;
+
+import "org.wildfly.clustering.marshalling.protostream.proto";
+
+/**
+ * @TypeId(476)
+ */
+message InterceptionContext {
+	org.wildfly.clustering.marshalling.protostream.Any	interceptorInstances	 = 1;
+	org.wildfly.clustering.marshalling.protostream.Any	manager	 = 2;
+	org.wildfly.clustering.marshalling.protostream.Any	annotatedType	 = 3;
+}
+
+/**
+ * @TypeId(477)
+ */
+message InterceptorMethodHandler {
+	InterceptionContext	context	 = 1;
+}

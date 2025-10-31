@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<project name="clustering-build scripts">
+
+    <!-- import shared ant targets -->
+    <import file="common-targets.xml" as="common"/>
+
+    <target name="build-xts" description="Builds server configuration for XTS tests">
+
+        <echo message="Copying and configuring AS instance for XTS..."/>
+
+        <echo message="Copying and configuring instance alternative-server"/>
+        <copy todir="target/alternative-server">
+            <fileset dir="target/wildfly"/>
+        </copy>
+
+        <echo message="Setting port offset of 100 to alternative-server"/>
+        <ts.config-as.add-port-offset name="alternative-server" offset="100"/>
+    </target>
+
+</project>

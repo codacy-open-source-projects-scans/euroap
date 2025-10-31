@@ -1,0 +1,434 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+package org.jboss.as.ejb3.tx;
+
+import static org.jboss.as.ejb3.tx.util.StatusHelper.statusAsString;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.rmi.RemoteException;
+import jakarta.ejb.EJBException;
+import jakarta.ejb.EJBTransactionRolledbackException;
+import jakarta.ejb.NoSuchEJBException;
+import jakarta.ejb.NoSuchEntityException;
+import jakarta.ejb.TransactionAttributeType;
+import jakarta.transaction.HeuristicMixedException;
+import jakarta.transaction.HeuristicRollbackException;
+import jakarta.transaction.RollbackException;
+import jakarta.transaction.Status;
+import jakarta.transaction.SystemException;
+import jakarta.transaction.Transaction;
+
+import org.jboss.as.ee.component.Component;
+import org.jboss.as.ee.component.ComponentView;
+import org.jboss.as.ejb3.component.EJBComponent;
+import org.jboss.as.ejb3.component.MethodIntfHelper;
+import org.jboss.as.ejb3.logging.EjbLogger;
+import org.jboss.invocation.ImmediateInterceptorFactory;
+import org.jboss.invocation.Interceptor;
+import org.jboss.invocation.InterceptorContext;
+import org.jboss.invocation.InterceptorFactory;
+import org.jboss.metadata.ejb.spec.MethodInterfaceType;
+import org.wildfly.transaction.client.AbstractTransaction;
+import org.wildfly.transaction.client.ContextTransactionManager;
+
+/**
+ * NOTE: References in this file to Enterprise JavaBeans (EJB) refer to the Jakarta Enterprise Beans unless otherwise noted.
+ *
+ * Ensure the correct exceptions are thrown based on both caller
+ * transactional context and supported Transaction Attribute Type
+ * <p/>
+ * EJB3 13.6.2.6
+ * EJB3 Core Specification 14.3.1 Table 14
+ *
+ * @author <a href="mailto:andrew.rubinger@redhat.com">ALR</a>
+ * @author <a href="mailto:cdewolf@redhat.com">Carlo de Wolf</a>
+ * @author Scott Marlow
+ */
+public class CMTTxInterceptor implements Interceptor {
+
+    public static final InterceptorFactory FACTORY = new ImmediateInterceptorFactory(new CMTTxInterceptor());
+
+
+    /**
+     * The <code>endTransaction</code> method ends a transaction and
+     * translates any exceptions into
+     * TransactionRolledBack[Local]Exception or SystemException.
+     *
+     * @param tx a <code>Transaction</code> value
+     */
+    protected void endTransaction(final Transaction tx) {
+        ContextTransactionManager tm = ContextTransactionManager.getInstance();
+        try {
+            if (! tx.equals(tm.getTransaction())) {
+                throw EjbLogger.ROOT_LOGGER.wrongTxOnThread(tx, tm.getTransaction());
+            }
+            final int txStatus = tx.getStatus();
+            if (txStatus == Status.STATUS_ACTIVE) {
+                // Commit tx
+                // This will happen if
+                // a) everything goes well
+                // b) app. exception was thrown
+                tm.commit();
+            } else if (txStatus == Status.STATUS_MARKED_ROLLBACK) {
+                tm.rollback();
+            } else if (txStatus == Status.STATUS_ROLLEDBACK || txStatus == Status.STATUS_ROLLING_BACK) {
+                // handle reaper canceled (rolled back) tx case (see WFLY-1346)
+                // clear current tx state and throw RollbackException (EJBTransactionRolledbackException)
+                tm.rollback();
+                throw EjbLogger.ROOT_LOGGER.transactionAlreadyRolledBack(tx);
+            } else if (txStatus == Status.STATUS_UNKNOWN) {
+                // STATUS_UNKNOWN isn't expected to be reached here but if it does, we need to clear current thread tx.
+                // It is possible that calling tm.commit() could succeed but we call tm.rollback, since this is an unexpected
+                // tx state that are are handling.
+                tm.rollback();
+                // if the tm.rollback doesn't fail, we throw an EJBException to reflect the unexpected tx state.
+                throw EjbLogger.ROOT_LOGGER.transactionInUnexpectedState(tx, statusAsString(txStatus));
+            } else {
+                // logically, all of the following (unexpected) tx states are handled here:
+                //  Status.STATUS_PREPARED
+                //  Status.STATUS_PREPARING
+                //  Status.STATUS_COMMITTING
+                //  Status.STATUS_NO_TRANSACTION
+                //  Status.STATUS_COMMITTED
+                tm.suspend();                       // clear current tx state and throw EJBException
+                throw EjbLogger.ROOT_LOGGER.transactionInUnexpectedState(tx, statusAsString(txStatus));
+            }
+        } catch (RollbackException e) {
+            throw new EJBTransactionRolledbackException(e.toString(), e);
+        } catch (HeuristicMixedException | SystemException | HeuristicRollbackException e) {
+            throw new EJBException(e);
+        }
+
+    }
+
+    private void endTransaction(final Transaction tx, final Throwable outerEx) {
+        try {
+            endTransaction(tx);
+        } catch (Throwable t) {
+            outerEx.addSuppressed(t);
+        }
+    }
+
+    public Object processInvocation(InterceptorContext invocation) throws Exception {
+        final EJBComponent component = (EJBComponent) invocation.getPrivateData(Component.class);
+
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
+        final int oldTimeout = tm.getTransactionTimeout();
+        try {
+            final MethodInterfaceType methodIntf = MethodIntfHelper.of(invocation);
+            final Method method = invocation.getMethod();
+            final TransactionAttributeType attr = component.getTransactionAttributeType(methodIntf, method);
+            final int timeoutInSeconds = component.getTransactionTimeout(methodIntf, method);
+
+            switch (attr) {
+                case MANDATORY:
+                    return mandatory(invocation, component);
+                case NEVER:
+                    return never(invocation, component);
+                case NOT_SUPPORTED:
+                    return notSupported(invocation, component);
+                case REQUIRED:
+                    final ComponentView view = invocation.getPrivateData(ComponentView.class);
+                    if (view != null && view.isAsynchronous(method)) {
+                        // EJB 3.2 4.5.3 Transactions
+                        // The client’s transaction context does not propagate with an asynchronous method invocation. From the
+                        // Bean Provider’s point of view, there is never a transaction context flowing in from the client. This
+                        // means, for example, that the semantics of the REQUIRED transaction attribute on an asynchronous
+                        // method are exactly the same as REQUIRES_NEW.
+                        return requiresNew(invocation, component, timeoutInSeconds);
+                    }
+                    return required(invocation, component, timeoutInSeconds);
+                case REQUIRES_NEW:
+                    return requiresNew(invocation, component, timeoutInSeconds);
+                case SUPPORTS:
+                    return supports(invocation, component);
+                default:
+                    throw EjbLogger.ROOT_LOGGER.unknownTxAttributeOnInvocation(attr, invocation);
+            }
+        } finally {
+            // See also https://issues.jboss.org/browse/WFTC-44
+            tm.setTransactionTimeout(oldTimeout == ContextTransactionManager.getGlobalDefaultTransactionTimeout() ? 0 : oldTimeout);
+        }
+    }
+
+    protected Object invokeInImportedTx(InterceptorContext invocation, EJBComponent component) throws Exception {
+        Transaction tx;
+        try {
+            tx = invocation.getTransaction();
+        } catch (SystemException ex) {
+            // SystemException + server suspended equals the transaction is new and the request
+            // for new transaction is being rejected
+            if (component != null && component.getEjbSuspendHandlerService().isSuspended()) {
+                throw EjbLogger.ROOT_LOGGER.cannotBeginUserTransaction();
+            } else {
+                throw new EJBException(ex);
+            }
+        }
+        safeResume(tx);
+        final Object result;
+        try {
+            result = invokeInCallerTx(invocation, tx, component);
+        } catch (Throwable t) {
+            safeSuspend(t);
+            throw t;
+        }
+        safeSuspend();
+        return result;
+    }
+
+    protected Object invokeInCallerTx(InterceptorContext invocation, Transaction tx, final EJBComponent component) throws Exception {
+        try {
+            return invocation.proceed();
+        } catch (Error e) {
+            final EJBTransactionRolledbackException e2 = EjbLogger.ROOT_LOGGER.unexpectedErrorRolledBack(e);
+            setRollbackOnly(tx, e2);
+            throw e2;
+        } catch (Exception e) {
+            ApplicationExceptionDetails ae = component.getApplicationException(e.getClass(), invocation.getMethod());
+
+            if (ae != null) {
+                if (ae.isRollback()) setRollbackOnly(tx, e);
+                throw e;
+            }
+            try {
+                throw e;
+            } catch (EJBTransactionRolledbackException | NoSuchEJBException | NoSuchEntityException e2) {
+                setRollbackOnly(tx, e2);
+                throw e2;
+            } catch (RuntimeException e2) {
+                final EJBTransactionRolledbackException e3 = new EJBTransactionRolledbackException(e2.getMessage(), e2);
+                setRollbackOnly(tx, e3);
+                throw e3;
+            }
+        } catch (Throwable t) {
+            final EJBException e = new EJBException(new UndeclaredThrowableException(t));
+            setRollbackOnly(tx, e);
+            throw e;
+        }
+    }
+
+    protected Object invokeInNoTx(InterceptorContext invocation, final EJBComponent component) throws Exception {
+        try {
+            return invocation.proceed();
+        } catch (Error e) {
+            throw EjbLogger.ROOT_LOGGER.unexpectedError(e);
+        } catch (EJBException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            ApplicationExceptionDetails ae = component.getApplicationException(e.getClass(), invocation.getMethod());
+            throw ae != null ? e : new EJBException(e);
+        } catch (Exception e) {
+            throw e;
+        } catch (Throwable t) {
+            throw new EJBException(new UndeclaredThrowableException(t));
+        }
+    }
+
+    protected Object invokeInOurTx(InterceptorContext invocation, final EJBComponent component) throws Exception {
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
+        tm.begin();
+        final AbstractTransaction tx = tm.getTransaction();
+        Object result = null;
+        Exception except = null;
+        try {
+            result = invocation.proceed();
+        } catch (Throwable t) {
+            ApplicationExceptionDetails ae = component.getApplicationException(t.getClass(), invocation.getMethod());
+            try {
+                try {
+                    throw t;
+                } catch (EJBException | RemoteException e) {
+                    throw e;
+                } catch (RuntimeException e) {
+                    if (ae != null && !ae.isRollback()) {
+                        except = e;
+                    } else if(ae != null && ae.isRollback()) {
+                        throw e;
+                    } else {
+                        throw new EJBException(e);
+                    }
+                } catch (Exception e) {
+                    throw e;
+                } catch (Error e) {
+                    throw EjbLogger.ROOT_LOGGER.unexpectedError(e);
+                } catch (Throwable e) {
+                    throw new EJBException(new UndeclaredThrowableException(e));
+                }
+            } catch (Throwable t2) {
+                if (ae == null || ae.isRollback()) setRollbackOnly(tx, t2);
+                endTransaction(tx, t2);
+                throw t2;
+            }
+        }
+        boolean rolledBack = safeGetStatus(tx) == Status.STATUS_MARKED_ROLLBACK;
+        endTransaction(tx);
+
+        if (except!=null) {
+            throw except;
+        }
+
+        if (rolledBack) ourTxRolledBack();
+        return result;
+    }
+
+    private int safeGetStatus(final AbstractTransaction tx) {
+        try {
+            return tx.getStatus();
+        } catch (SystemException e) {
+            return Status.STATUS_UNKNOWN;
+        }
+    }
+
+    private void safeSuspend() {
+        try {
+            ContextTransactionManager.getInstance().suspend();
+        } catch (SystemException e) {
+            throw new EJBException(e);
+        }
+    }
+
+    private void safeSuspend(final Throwable t) {
+        try {
+            ContextTransactionManager.getInstance().suspend();
+        } catch (SystemException e) {
+            t.addSuppressed(e);
+        }
+    }
+
+    private void safeResume(final Transaction tx) {
+        try {
+            ContextTransactionManager.getInstance().resume(tx);
+        } catch (Exception e) {
+            throw new EJBException(e);
+        }
+    }
+
+    private void safeResume(final Transaction tx, final Throwable t) {
+        try {
+            ContextTransactionManager.getInstance().resume(tx);
+        } catch (Exception e) {
+            t.addSuppressed(e);
+        }
+    }
+
+    protected void ourTxRolledBack() {
+        // normally no operation
+    }
+
+    protected Object mandatory(InterceptorContext invocation, final EJBComponent component) throws Exception {
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
+        Transaction tx = tm.getTransaction();
+        if (tx == null) {
+            if (invocation.hasTransaction()) {
+                return invokeInImportedTx(invocation, component);
+            }
+            throw EjbLogger.ROOT_LOGGER.txRequiredForInvocation(invocation);
+        }
+        return invokeInCallerTx(invocation, tx, component);
+    }
+
+    protected Object never(InterceptorContext invocation, final EJBComponent component) throws Exception {
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
+        if (tm.getTransaction() != null || invocation.hasTransaction()) {
+            throw EjbLogger.ROOT_LOGGER.txPresentForNeverTxAttribute();
+        }
+        return invokeInNoTx(invocation, component);
+    }
+
+    protected Object notSupported(InterceptorContext invocation, final EJBComponent component) throws Exception {
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
+        Transaction tx = tm.getTransaction();
+        if (tx != null) {
+            safeSuspend();
+            final Object result;
+            try {
+                result = invokeInNoTx(invocation, component);
+            } catch (Throwable t) {
+                safeResume(tx, t);
+                throw t;
+            }
+            safeResume(tx);
+            return result;
+        } else {
+            return invokeInNoTx(invocation, component);
+        }
+    }
+
+    protected Object required(final InterceptorContext invocation, final EJBComponent component, final int timeout) throws Exception {
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
+
+        if (timeout != -1) {
+            tm.setTransactionTimeout(timeout);
+        }
+
+        final Transaction tx = tm.getTransaction();
+
+        if (tx == null) {
+            if (invocation.hasTransaction()) {
+                return invokeInImportedTx(invocation, component);
+            }
+            return invokeInOurTx(invocation, component);
+        } else {
+            return invokeInCallerTx(invocation, tx, component);
+        }
+    }
+
+    protected Object requiresNew(InterceptorContext invocation, final EJBComponent component, final int timeout) throws Exception {
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
+
+        if (timeout != -1) {
+            tm.setTransactionTimeout(timeout);
+        }
+
+        Transaction tx = tm.getTransaction();
+        if (tx != null) {
+            safeSuspend();
+            final Object result;
+            try {
+                result = invokeInOurTx(invocation, component);
+            } catch (Throwable t) {
+                safeResume(tx, t);
+                throw t;
+            }
+            safeResume(tx);
+            return result;
+        } else {
+            return invokeInOurTx(invocation, component);
+        }
+    }
+
+    /**
+     * The <code>setRollbackOnly</code> method calls setRollbackOnly()
+     * on the invocation's transaction and logs any exceptions than may
+     * occur.
+     *
+     * @param tx the transaction
+     * @param t the exception to add problems to (may be {@code null})
+     */
+    protected void setRollbackOnly(Transaction tx, final Throwable t) {
+        try {
+            tx.setRollbackOnly();
+        } catch (Throwable t2) {
+            EjbLogger.ROOT_LOGGER.failedToSetRollbackOnly(t2);
+            if (t != null) {
+                t.addSuppressed(t2);
+            }
+        }
+    }
+
+    protected Object supports(InterceptorContext invocation, final EJBComponent component) throws Exception {
+        final ContextTransactionManager tm = ContextTransactionManager.getInstance();
+        Transaction tx = tm.getTransaction();
+        if (tx == null) {
+            if (invocation.hasTransaction()) {
+                return invokeInImportedTx(invocation, component);
+            }
+            return invokeInNoTx(invocation, component);
+        } else {
+            return invokeInCallerTx(invocation, tx, component);
+        }
+    }
+}

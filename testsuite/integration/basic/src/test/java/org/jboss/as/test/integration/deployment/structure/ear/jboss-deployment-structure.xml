@@ -1,0 +1,48 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.1">
+    <deployment>
+        <dependencies>
+            <module name="deployment.module.ignored"/>
+            <module name="deployment.aaa"/>
+            <module name="deployment.module.doesnotexist" optional="true" />
+        </dependencies>
+    </deployment>
+    <sub-deployment name="ejb.jar">
+        <resources>
+            <resource-root path="ejb.jar"  use-physical-code-source="true"/>
+        </resources>
+        <dependencies>
+            <module name="deployment.module.ignored"/>
+            <module name="deployment.aaa" meta-inf="export"/>
+            <module name="deployment.ccc" annotations="true" meta-inf="export"/>
+        </dependencies>
+        <module-alias name="deployment.bbb" />
+    </sub-deployment>
+    <module name="deployment.module.ignored">
+        <resources>
+            <resource-root path="ignored.jar">
+                <filter>
+                    <exclude path="org/jboss/**/*"/>
+                </filter>
+            </resource-root>
+        </resources>
+    </module>
+    <module name="deployment.module.available">
+        <resources>
+            <resource-root path="available.jar" use-physical-code-source="true"/>
+        </resources>
+        <module-alias name="deployment.aaa" />
+    </module>
+
+    <module name="deployment.module.available2">
+        <resources>
+            <resource-root path="available2.jar" use-physical-code-source="true"/>
+        </resources>
+        <module-alias name="deployment.ccc" />
+    </module>
+
+</jboss-deployment-structure>
+

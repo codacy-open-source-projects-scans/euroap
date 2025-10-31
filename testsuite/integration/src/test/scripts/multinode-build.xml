@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<project>
+
+    <!-- import shared ant targets -->
+    <import file="common-targets.xml" as="common"/>
+
+    <target name="build-multinode" description="Builds server configurations for Multi-node tests">
+
+        <echo message="Copying and configuring instance jbossas-multinode-client"/>
+        <copy todir="target/jbossas-multinode-client">
+            <fileset dir="target/wildfly"/>
+        </copy>
+    	<ts.config-as.add-remote-outbound-connection name="jbossas-multinode-client" node="${node1}" remotePort="8180" protocol="remote+http" />
+    	<!--
+        <ts.config-as.add-remote-outbound-connection name="jbossas-multinode-client" node="${node1}" remotePort="8180" protocol="remote+http" securityRealm="PasswordRealm" userName="user1"/>
+        <ts.config-as.add-identity-realm name="jbossas-multinode-client" realmName="PasswordRealm" secret="cGFzc3dvcmQx"/>
+        -->
+   
+    </target>
+
+</project>

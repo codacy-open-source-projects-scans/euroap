@@ -1,0 +1,753 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.wildfly</groupId>
+        <artifactId>wildfly-ts-preview</artifactId>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>39.0.0.Beta1-SNAPSHOT</version>
+    </parent>
+
+    <!-- ********************************************************************************** -->
+    <!-- ******************************** Basic Integration ******************************* -->
+    <!-- ********************************************************************************** -->
+    <artifactId>wildfly-ts-preview-basic</artifactId>
+
+    <name>WildFly Test Suite: Preview - Basic</name>
+
+    <properties>
+        <jbossas.ts.integ.dir>${basedir}/..</jbossas.ts.integ.dir>
+        <jbossas.ts.dir>${jbossas.ts.integ.dir}/..</jbossas.ts.dir>
+        <jbossas.project.dir>${jbossas.ts.dir}/..</jbossas.project.dir>
+        <surefire.forked.process.timeout>3600</surefire.forked.process.timeout>
+        <!-- Disable the default surefire test execution. -->
+        <surefire.default-test.phase>none</surefire.default-test.phase>
+        <glow.mvc.phase>none</glow.mvc.phase>
+        <glow.vertx.phase>none</glow.vertx.phase>
+        <glow.hibernate-search.phase>none</glow.hibernate-search.phase>
+        <ts.copy-wildfly-standalone-embedded-broker.phase>process-test-resources</ts.copy-wildfly-standalone-embedded-broker.phase>
+        <cloud-profile-provisioning.phase>none</cloud-profile-provisioning.phase>
+        <full-provisioning.phase>generate-test-resources</full-provisioning.phase>
+        <hibernate-search-provisioning.phase>none</hibernate-search-provisioning.phase>
+        <mvc-provisioning.phase>none</mvc-provisioning.phase>
+        <vertx-provisioning.phase>none</vertx-provisioning.phase>
+
+        <!-- TODO WFLY-20965 remove the need for this and rely on wildfly-preview-ee-bom specified by our parent -->
+        <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
+
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.enterprise</groupId>
+            <artifactId>jakarta.enterprise.cdi-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.mvc</groupId>
+            <artifactId>jakarta.mvc-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.transaction</groupId>
+            <artifactId>jakarta.transaction-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.ejb</groupId>
+            <artifactId>jakarta.ejb-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.search</groupId>
+            <artifactId>hibernate-search-backend-elasticsearch</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.search</groupId>
+            <artifactId>hibernate-search-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.search</groupId>
+            <artifactId>hibernate-search-mapper-pojo-base</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.search</groupId>
+            <artifactId>hibernate-search-mapper-orm</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate.search</groupId>
+            <artifactId>hibernate-search-mapper-orm-outbox-polling</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${ee.maven.groupId}</groupId>
+            <artifactId>wildfly-testsuite-shared</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.core</groupId>
+            <artifactId>wildfly-controller</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.core</groupId>
+            <artifactId>wildfly-core-testsuite-shared</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.smallrye.common</groupId>
+            <artifactId>smallrye-common-annotation</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Disable the standard copy-based provisioning -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions combine.children="append">
+                    <execution>
+                        <id>ts.copy-wildfly</id>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <runOrder>alphabetical</runOrder>
+                    <systemPropertyVariables combine.children="append">
+                        <jboss.install.dir>${basedir}/target/wildfly</jboss.install.dir>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.wildfly.glow</groupId>
+                <artifactId>wildfly-glow-arquillian-plugin</artifactId>
+                <configuration>
+                    <feature-packs>
+                        <feature-pack>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>wildfly-preview-feature-pack</artifactId>
+                            <version>${project.version}</version>
+                        </feature-pack>
+                    </feature-packs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>scan-mvc-layers</id>
+                        <goals>
+                            <goal>scan</goal>
+                        </goals>
+                        <phase>${glow.mvc.phase}</phase>
+                        <!--<phase>none</phase>-->
+                        <configuration>
+                            <expected-discovery>[cdi, datasources, h2-datasource, h2-default-datasource, jaxrs, mvc-krazo]==>ee-core-profile-server,h2-default-datasource,jaxrs,mvc-krazo</expected-discovery>
+                            <surefire-execution-for-included-classes>mvc.layer.surefire</surefire-execution-for-included-classes>
+                            <add-ons>
+                                <add-on>h2-database:default</add-on>
+                            </add-ons>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>scan-hibernate-search-layers</id>
+                        <goals>
+                            <goal>scan</goal>
+                        </goals>
+                        <phase>${glow.hibernate-search.phase}</phase>
+                        <configuration>
+                            <expected-discovery>[cdi, datasources, h2-datasource, h2-default-datasource, hibernate-search, jpa, transactions]==>ee-core-profile-server,h2-default-datasource,hibernate-search</expected-discovery>
+                            <surefire-execution-for-included-classes>hibernate-search.layer.surefire</surefire-execution-for-included-classes>
+                            <add-ons>
+                                <add-on>h2-database:default</add-on>
+                            </add-ons>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>scan-vertx-layers</id>
+                        <goals>
+                            <goal>scan</goal>
+                        </goals>
+                        <phase>${glow.vertx.phase}</phase>
+                        <configuration>
+                            <expected-discovery>[cdi, datasources, ejb-lite, h2-datasource, h2-default-datasource, jaxrs, vertx]==>ee-core-profile-server,ejb-lite,h2-default-datasource,jaxrs,vertx</expected-discovery>
+                            <surefire-execution-for-included-classes>vertx.layer.surefire</surefire-execution-for-included-classes>
+                            <add-ons>
+                                <add-on>h2-database:default</add-on>
+                            </add-ons>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.wildfly.plugins</groupId>
+                <artifactId>wildfly-maven-plugin</artifactId>
+                <version>${version.org.wildfly.plugin}</version>
+                <configuration>
+                    <overwrite-provisioned-server>true</overwrite-provisioned-server>
+                    <record-provisioning-state>false</record-provisioning-state>
+                    <log-provisioning-time>${galleon.log.time}</log-provisioning-time>
+                    <offline-provisioning>${galleon.offline}</offline-provisioning>
+                    <galleon-options>
+                        <jboss-maven-dist/>
+                        <jboss-fork-embedded>${galleon.fork.embedded}</jboss-fork-embedded>
+                        <optional-packages>passive+</optional-packages>
+                    </galleon-options>
+                </configuration>
+                <executions>
+                    <!-- Provision a non-slimmed server -->
+                    <execution>
+                        <id>full-server-provisioning</id>
+                        <goals>
+                            <goal>provision</goal>
+                        </goals>
+                        <phase>${full-provisioning.phase}</phase>
+                        <configuration>
+                            <provisioning-dir>${project.build.directory}/wildfly</provisioning-dir>
+                            <feature-packs>
+                                <feature-pack>
+                                    <groupId>${full.maven.groupId}</groupId>
+                                    <artifactId>wildfly-preview-feature-pack</artifactId>
+                                    <version>${full.maven.version}</version>
+                                </feature-pack>
+                            </feature-packs>
+                        </configuration>
+                    </execution>
+
+                    <!-- Provision a server with hibernate-search -->
+                    <execution>
+                        <id>hibernate-search-provisioning</id>
+                        <goals>
+                            <goal>provision</goal>
+                        </goals>
+                        <phase>${hibernate-search-provisioning.phase}</phase>
+                        <configuration>
+                            <provisioning-dir>${project.build.directory}/wildfly-hibernate-search</provisioning-dir>
+                            <provisioning-file>target/glow-scan/hibernate-search.layer.surefire/provisioning.xml</provisioning-file>
+                        </configuration>
+                    </execution>
+
+                    <!-- Provision a server with mvc-krazo -->
+                    <execution>
+                        <id>mvc-provisioning</id>
+                        <goals>
+                            <goal>provision</goal>
+                        </goals>
+                        <phase>${mvc-provisioning.phase}</phase>
+                        <configuration>
+                            <provisioning-dir>${project.build.directory}/wildfly-mvc</provisioning-dir>
+                            <provisioning-file>target/glow-scan/mvc.layer.surefire/provisioning.xml</provisioning-file>
+                        </configuration>
+                    </execution>
+
+                    <!-- Provision a server with vertx-subsystem -->
+                    <execution>
+                        <id>vertx-subsystem-provisioning</id>
+                        <goals>
+                            <goal>provision</goal>
+                        </goals>
+                        <phase>${vertx-provisioning.phase}</phase>
+                        <configuration>
+                            <provisioning-dir>${project.build.directory}/wildfly-vertx</provisioning-dir>
+                            <provisioning-file>target/glow-scan/vertx.layer.surefire/provisioning.xml</provisioning-file>
+                        </configuration>
+                    </execution>
+
+                    <!-- Package a server with hibernate-search -->
+                    <execution>
+                        <id>bootable-jar-hibernate-search-packaging</id>
+                        <goals>
+                            <goal>package</goal>
+                        </goals>
+                        <phase>${ts.bootable-jar-packaging.phase}</phase>
+                        <configuration>
+                            <bootableJar>true</bootableJar>
+                            <skipDeployment>true</skipDeployment>
+                            <bootableJarName>test-wildfly-hibernate-search.jar</bootableJarName>
+                            <extra-server-content-dirs>
+                                <!-- Uncomment if we add extra content
+                                <extraServerContent>${project.build.directory}/extraContent/</extraServerContent>
+                                -->
+                            </extra-server-content-dirs>
+                            <provisioning-file>target/glow-scan/hibernate-search.layer.surefire/provisioning.xml</provisioning-file>
+                        </configuration>
+                    </execution>
+
+                    <!-- Package a server with mvc -->
+                    <execution>
+                        <id>bootable-jar-mvc-packaging</id>
+                        <goals>
+                            <goal>package</goal>
+                        </goals>
+                        <phase>${ts.bootable-jar-packaging.phase}</phase>
+                        <configuration>
+                            <bootableJar>true</bootableJar>
+                            <skipDeployment>true</skipDeployment>
+                            <bootableJarName>test-wildfly-mvc.jar</bootableJarName>
+                            <extra-server-content-dirs>
+                                <!-- Uncomment if we add extra content
+                                <extraServerContent>${project.build.directory}/extraContent/</extraServerContent>
+                                -->
+                            </extra-server-content-dirs>
+                            <provisioning-file>target/glow-scan/mvc.layer.surefire/provisioning.xml</provisioning-file>
+                        </configuration>
+                    </execution>
+
+                    <!-- Package a server with vertx -->
+                    <execution>
+                        <id>bootable-jar-vertx-packaging</id>
+                        <goals>
+                            <goal>package</goal>
+                        </goals>
+                        <phase>${ts.bootable-jar-packaging.phase}</phase>
+                        <configuration>
+                            <bootableJar>true</bootableJar>
+                            <skipDeployment>true</skipDeployment>
+                            <bootableJarName>test-wildfly-vertx.jar</bootableJarName>
+                            <provisioning-file>target/glow-scan/vertx.layer.surefire/provisioning.xml</provisioning-file>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+
+        <profile>
+            <id>basic.integration.tests.profile</id>
+            <activation>
+                <property>
+                    <name>!no.basic.integration.tests</name>
+                </property>
+            </activation>
+
+           <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <executions combine.children="append">
+                            <!-- Copy the docs/example configs into the regulard configuration dir so
+                                 they are available for use by surefire executions that need them. -->
+                            <execution>
+                                <id>ts.copy-wildfly-standalone-embedded-broker</id>
+                                <inherited>true</inherited>
+                                <phase>${ts.copy-wildfly-standalone-embedded-broker.phase}</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${basedir}/target/wildfly/standalone/configuration/</outputDirectory>
+                                    <overwrite>true</overwrite>
+                                    <resources>
+                                        <resource>
+                                            <directory>${jbossas.project.dir}/${wildfly.build.output.dir}/docs/examples/configs/</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <!-- General configuration is inherited from the surefire plugin declaration outside this profile-->
+                        <!-- Here we just have executions -->
+                        <executions combine.children="append">
+
+                            <execution>
+                                <id>basic-preview-default-full.surefire</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Tests to execute. Overridden in webProfileExclusion.profile . -->
+                                    <includes>
+                                        <include>**/*TestCase*.java</include>
+                                    </includes>
+
+                                    <environmentVariables>
+                                        <JBOSS_HOME>${jboss.dist}</JBOSS_HOME>
+                                    </environmentVariables>
+
+                                    <!-- Parameters to test cases. -->
+                                    <systemPropertyVariables combine.children="append">
+                                        <jboss.server.config.file.name>standalone-activemq-embedded.xml</jboss.server.config.file.name>
+                                        <jboss.inst>${basedir}/target/wildfly</jboss.inst>
+                                        <!-- Needed for the IIOP tests-->
+                                        <com.sun.CORBA.ORBUseDynamicStub>true</com.sun.CORBA.ORBUseDynamicStub>
+                                        <!-- EJB client library hack, see WFLY-4973-->
+                                        <org.jboss.ejb.client.wildfly-testsuite-hack>true</org.jboss.ejb.client.wildfly-testsuite-hack>
+                                        <!-- Override the standard module path that points at the shared module set from dist -->
+                                        <module.path>${project.build.directory}/wildfly/modules${path.separator}${basedir}/target/modules</module.path>
+                                    </systemPropertyVariables>
+
+                                    <additionalClasspathElements>
+                                        <additionalClasspathElement>${project.basedir}/../src/test/resources</additionalClasspathElement>
+                                    </additionalClasspathElements>
+
+                                    <reportNameSuffix>basic-preview-default-full.surefire</reportNameSuffix>
+                                </configuration>
+                            </execution>
+
+                            <execution>
+                                <id>basic-preview-default-web.surefire</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Tests to execute. Overriden in webProfileExclusion.profile . -->
+                                    <excludes>
+                                        <!-- Tests which need FULL config. -->
+                                        <exclude>**/*TestCase*.java</exclude>
+                                    </excludes>
+
+                                    <environmentVariables>
+                                        <JBOSS_HOME>${jboss.dist}</JBOSS_HOME>
+                                    </environmentVariables>
+
+                                    <!-- Parameters to test cases. -->
+                                    <systemPropertyVariables combine.children="append">
+                                        <jboss.server.config.file.name>standalone.xml</jboss.server.config.file.name>
+                                        <jboss.inst>${basedir}/target/wildfly</jboss.inst>
+                                        <!-- EJB client library hack, see WFLY-4973-->
+                                        <org.jboss.ejb.client.wildfly-testsuite-hack>true</org.jboss.ejb.client.wildfly-testsuite-hack>
+                                        <!-- Override the standard module path that points at the shared module set from dist -->
+                                        <module.path>${project.build.directory}/wildfly/modules${path.separator}${basedir}/target/modules</module.path>
+                                    </systemPropertyVariables>
+                                    <additionalClasspathElements>
+                                        <additionalClasspathElement>${project.basedir}/../src/test/resources</additionalClasspathElement>
+                                    </additionalClasspathElements>
+                                    <reportNameSuffix>basic-preview-default-web.surefire</reportNameSuffix>
+                                </configuration>
+                            </execution>
+
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Test against slimmed servers provisioned by Galleon -->
+        <profile>
+            <id>layers.profile</id>
+            <activation>
+                <property>
+                    <name>ts.layers</name>
+                </property>
+            </activation>
+            <properties>
+                <jboss.dist>${project.build.directory}/wildfly</jboss.dist>
+                <glow.cloud-profile.phase>test-compile</glow.cloud-profile.phase>
+                <glow.hibernate-search.phase>test-compile</glow.hibernate-search.phase>
+                <glow.mvc.phase>test-compile</glow.mvc.phase>
+                <glow.vertx.phase>test-compile</glow.vertx.phase>
+                <full-provisioning.phase>none</full-provisioning.phase>
+                <hibernate-search-provisioning.phase>test-compile</hibernate-search-provisioning.phase>
+                <mvc-provisioning.phase>test-compile</mvc-provisioning.phase>
+                <vertx-provisioning.phase>test-compile</vertx-provisioning.phase>
+                <ts.config-as.copy-mgmt-users.phase>process-test-classes</ts.config-as.copy-mgmt-users.phase>
+                <ts.copy-wildfly-standalone-embedded-broker.phase>none</ts.copy-wildfly-standalone-embedded-broker.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <executions>
+                            <!-- Disable the standard test executions. -->
+                            <execution>
+                                <id>basic-preview-default-full.surefire</id>
+                                <phase>none</phase>
+                            </execution>
+                            <execution>
+                                <id>basic-preview-default-web.surefire</id>
+                                <phase>none</phase>
+                            </execution>
+
+                            <!-- Tests against the mvc install -->
+                            <execution>
+                                <id>mvc.layer.surefire</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <jboss.install.dir>${basedir}/target/wildfly-mvc</jboss.install.dir>
+                                        <jboss.home>${project.build.directory}/wildfly-mvc</jboss.home>
+                                        <jboss.home.dir>${project.build.directory}/wildfly-mvc</jboss.home.dir>
+                                        <jbossas.dist>${project.build.directory}/wildfly-mvc</jbossas.dist>
+                                        <jboss.dist>${project.build.directory}/wildfly-mvc</jboss.dist>
+                                        <!-- Override the standard module path that points at the shared module set from dist -->
+                                        <module.path>${project.build.directory}/wildfly-mvc/modules${path.separator}${basedir}/target/modules</module.path>
+                                    </systemPropertyVariables>
+                                    <includes>
+                                        <!-- Dummy test used to validate this pom -->
+                                        <include>org/wildfly/test/preview/mvc/**/*TestCase.java</include>
+                                    </includes>
+                                    <reportNameSuffix>mvc.layer.surefire</reportNameSuffix>
+                                </configuration>
+                            </execution>
+
+                            <!-- Tests against the vertx install -->
+                            <execution>
+                                <id>vertx.layer.surefire</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <jboss.install.dir>${basedir}/target/wildfly-vertx</jboss.install.dir>
+                                        <jboss.home>${project.build.directory}/wildfly-vertx</jboss.home>
+                                        <jboss.home.dir>${project.build.directory}/wildfly-vertx</jboss.home.dir>
+                                        <jbossas.dist>${project.build.directory}/wildfly-vertx</jbossas.dist>
+                                        <jboss.dist>${project.build.directory}/wildfly-vertx</jboss.dist>
+                                        <!-- Override the standard module path that points at the shared module set from dist -->
+                                        <module.path>${project.build.directory}/wildfly-vertx/modules${path.separator}${basedir}/target/modules</module.path>
+                                    </systemPropertyVariables>
+                                    <includes>
+                                        <!-- Dummy test used to validate this pom -->
+                                        <include>org/wildfly/test/preview/vertx/**/*TestCase.java</include>
+                                    </includes>
+                                    <reportNameSuffix>vertx.layer.surefire</reportNameSuffix>
+                                </configuration>
+                            </execution>
+                            <!-- Tests against the hibernate-search install -->
+                            <execution>
+                                <id>hibernate-search.layer.surefire</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <jboss.install.dir>${basedir}/target/wildfly-hibernate-search</jboss.install.dir>
+                                        <jboss.home>${project.build.directory}/wildfly-hibernate-search</jboss.home>
+                                        <jboss.home.dir>${project.build.directory}/wildfly-hibernate-search</jboss.home.dir>
+                                        <jbossas.dist>${project.build.directory}/wildfly-hibernate-search</jbossas.dist>
+                                        <jboss.dist>${project.build.directory}/wildfly-hibernate-search</jboss.dist>
+                                        <!-- Override the standard module path that points at the shared module set from dist -->
+                                        <module.path>${project.build.directory}/wildfly-hibernate-search/modules${path.separator}${basedir}/target/modules</module.path>
+                                    </systemPropertyVariables>
+                                    <environmentVariables>
+                                        <JBOSS_HOME>${project.build.directory}/wildfly-hibernate-search</JBOSS_HOME>
+                                    </environmentVariables>
+                                    <includes>
+                                        <include>org/wildfly/test/preview/hibernate/search/**/*TestCase.java</include>
+                                    </includes>
+                                    <reportNameSuffix>hibernate-search.layer.surefire</reportNameSuffix>
+                                </configuration>
+                            </execution>
+
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Test against bootable jar -->
+        <profile>
+            <id>bootablejar.preview.profile</id>
+            <activation>
+                <property>
+                    <name>ts.bootable.preview</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.wildfly.arquillian</groupId>
+                    <artifactId>wildfly-arquillian-container-bootable</artifactId>
+                </dependency>
+            </dependencies>
+            <properties>
+                <extra.server.jvm.args>-Dmaven.repo.local=${settings.localRepository}</extra.server.jvm.args>
+                <full-provisioning.phase>none</full-provisioning.phase>
+                <glow.cloud-profile.phase>test-compile</glow.cloud-profile.phase>
+                <glow.hibernate-search.phase>test-compile</glow.hibernate-search.phase>
+                <glow.mvc.phase>test-compile</glow.mvc.phase>
+                <glow.vertx.phase>test-compile</glow.vertx.phase>
+                <ts.copy-wildfly-standalone-embedded-broker.phase>none</ts.copy-wildfly-standalone-embedded-broker.phase>
+                <ts.bootable-jar-packaging.phase>process-test-classes</ts.bootable-jar-packaging.phase>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <executions>
+                            <!-- Disable the standard copy-based provisioning -->
+                            <execution>
+                                <id>ts.copy-wildfly</id>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <phase>none</phase>
+                            </execution>
+                            <execution>
+                                <id>copy-module-files</id>
+                                <goals>
+                                    <goal>testResources</goal>
+                                </goals>
+                                <phase>process-test-classes</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/extraContent/modules/</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>src/test/modules</directory>
+                                            <includes>
+                                                <include>**/module.xml</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <executions>
+                            <!-- Disable the standard test executions. -->
+                            <execution>
+                                <id>basic-preview-default-full.surefire</id>
+                                <phase>none</phase>
+                            </execution>
+                            <execution>
+                                <id>basic-preview-default-web.surefire</id>
+                                <phase>none</phase>
+                            </execution>
+
+                            <!-- Tests against the hibernate-search install -->
+                            <execution>
+                                <id>hibernate-search.layer.surefire</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <install.dir>${project.build.directory}/wildfly-bootable-hibernate-search</install.dir>
+                                        <bootable.jar>${project.build.directory}/test-wildfly-hibernate-search.jar</bootable.jar>
+                                        <arquillian.xml>arquillian-bootable.xml</arquillian.xml>
+                                    </systemPropertyVariables>
+                                    <classpathDependencyExcludes>
+                                        <classpathDependencyExclude>
+                                            org.wildfly.arquillian:wildfly-arquillian-container-managed
+                                        </classpathDependencyExclude>
+                                    </classpathDependencyExcludes>
+                                    <includes>
+                                        <include>org/wildfly/test/preview/hibernate/search/**/*TestCase.java</include>
+                                    </includes>
+                                    <reportNameSuffix>hibernate-search.surefire</reportNameSuffix>
+                                </configuration>
+                            </execution>
+
+                            <!-- Tests against a server provisioned with jpa -->
+                            <execution>
+                                <id>mvc.layer.surefire</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <install.dir>${project.build.directory}/wildfly-bootable-mvc</install.dir>
+                                        <bootable.jar>${project.build.directory}/test-wildfly-mvc.jar</bootable.jar>
+                                        <arquillian.xml>arquillian-bootable.xml</arquillian.xml>
+                                    </systemPropertyVariables>
+                                    <classpathDependencyExcludes>
+                                        <classpathDependencyExclude>
+                                            org.wildfly.arquillian:wildfly-arquillian-container-managed
+                                        </classpathDependencyExclude>
+                                    </classpathDependencyExcludes>
+                                    <includes>
+                                        <include>org/wildfly/test/preview/mvc/**/*TestCase.java</include>
+                                    </includes>
+                                    <reportNameSuffix>mvc.layer.surefire</reportNameSuffix>
+                                </configuration>
+                            </execution>
+
+                            <!-- Tests against a server provisioned with vertx layer -->
+                            <execution>
+                                <id>vertx.layer.surefire</id>
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <install.dir>${project.build.directory}/wildfly-bootable-vertx</install.dir>
+                                        <bootable.jar>${project.build.directory}/test-wildfly-vertx.jar</bootable.jar>
+                                        <arquillian.xml>arquillian-bootable.xml</arquillian.xml>
+                                    </systemPropertyVariables>
+                                    <classpathDependencyExcludes>
+                                        <classpathDependencyExclude>
+                                            org.wildfly.arquillian:wildfly-arquillian-container-managed
+                                        </classpathDependencyExclude>
+                                    </classpathDependencyExcludes>
+                                    <includes>
+                                        <include>org/wildfly/test/preview/vertx/**/*TestCase.java</include>
+                                    </includes>
+                                    <reportNameSuffix>vertx.layer.surefire</reportNameSuffix>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+    </profiles>
+
+</project>

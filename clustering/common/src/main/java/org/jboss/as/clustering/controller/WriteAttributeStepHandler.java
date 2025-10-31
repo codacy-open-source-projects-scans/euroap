@@ -1,0 +1,96 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.jboss.as.clustering.controller;
+
+import java.util.Map;
+import java.util.function.Predicate;
+
+import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
+import org.jboss.as.controller.capability.RuntimeCapability;
+import org.jboss.as.controller.registry.AttributeAccess;
+import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.dmr.ModelNode;
+
+/**
+ * Convenience extension of {@link org.jboss.as.controller.ReloadRequiredWriteAttributeHandler} that can be initialized with an {@link Attribute} set.
+ * @author Paul Ferraro
+ */
+public class WriteAttributeStepHandler extends ReloadRequiredWriteAttributeHandler implements ManagementRegistrar<ManagementResourceRegistration> {
+
+    private final WriteAttributeStepHandlerDescriptor descriptor;
+    private final ResourceServiceHandler handler;
+
+    public WriteAttributeStepHandler(WriteAttributeStepHandlerDescriptor descriptor) {
+        this(descriptor, null);
+    }
+
+    public WriteAttributeStepHandler(WriteAttributeStepHandlerDescriptor descriptor, ResourceServiceHandler handler) {
+        super(descriptor.getAttributes());
+        this.descriptor = descriptor;
+        this.handler = handler;
+    }
+
+    @Override
+    public void register(ManagementResourceRegistration registration) {
+        for (AttributeDefinition attribute : this.descriptor.getAttributes()) {
+            registration.registerReadWriteAttribute(attribute, null, this);
+        }
+    }
+
+    @Override
+    protected void recordCapabilitiesAndRequirements(OperationContext context, AttributeDefinition attribute, ModelNode newValue, ModelNode oldValue) {
+        Map<RuntimeCapability<?>, Predicate<ModelNode>> capabilities = this.descriptor.getCapabilities();
+        if (!capabilities.isEmpty()) {
+            PathAddress address = context.getCurrentAddress();
+            // newValue is already applied to the model
+            ModelNode newModel = context.readResource(PathAddress.EMPTY_ADDRESS).getModel();
+            ModelNode oldModel = newModel.clone();
+            oldModel.get(attribute.getName()).set(oldValue);
+            for (Map.Entry<RuntimeCapability<?>, Predicate<ModelNode>> entry : capabilities.entrySet()) {
+                RuntimeCapability<?> capability = entry.getKey();
+                Predicate<ModelNode> predicate = entry.getValue();
+                boolean registered = predicate.test(oldModel);
+                boolean shouldRegister = predicate.test(newModel);
+                if (!registered && shouldRegister) {
+                    // Attribute change enables capability registration
+                    context.registerCapability(capability.isDynamicallyNamed() ? capability.fromBaseCapability(address) : capability);
+                } else if (registered && !shouldRegister) {
+                    // Attribute change disables capability registration
+                    context.deregisterCapability(capability.isDynamicallyNamed() ? capability.getDynamicName(address) : capability.getName());
+                }
+            }
+        }
+        super.recordCapabilitiesAndRequirements(context, attribute, newValue, oldValue);
+    }
+
+    @Override
+    protected boolean applyUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode resolvedValue, ModelNode currentValue, HandbackHolder<Void> handback) throws OperationFailedException {
+        boolean updated = super.applyUpdateToRuntime(context, operation, attributeName, resolvedValue, currentValue, handback);
+        if (updated && (this.handler != null)) {
+            PathAddress address = context.getCurrentAddress();
+            if (context.isResourceServiceRestartAllowed() && this.getAttributeDefinition(attributeName).getFlags().contains(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES) && context.markResourceRestarted(address, this.handler)) {
+                this.handler.removeServices(context, context.getOriginalRootResource().navigate(context.getCurrentAddress()).getModel());
+                this.handler.installServices(context, context.readResource(PathAddress.EMPTY_ADDRESS, false).getModel());
+                // Returning false prevents going into reload required state
+                return false;
+            }
+        }
+        return updated;
+    }
+
+    @Override
+    protected void revertUpdateToRuntime(OperationContext context, ModelNode operation, String attributeName, ModelNode valueToRestore, ModelNode resolvedValue, Void handback) throws OperationFailedException {
+        PathAddress address = context.getCurrentAddress();
+        if (context.isResourceServiceRestartAllowed() && this.getAttributeDefinition(attributeName).getFlags().contains(AttributeAccess.Flag.RESTART_RESOURCE_SERVICES) && context.revertResourceRestarted(address, this.handler)) {
+            this.handler.removeServices(context, context.readResource(PathAddress.EMPTY_ADDRESS, false).getModel());
+            this.handler.installServices(context, context.getOriginalRootResource().navigate(context.getCurrentAddress()).getModel());
+        }
+    }
+}

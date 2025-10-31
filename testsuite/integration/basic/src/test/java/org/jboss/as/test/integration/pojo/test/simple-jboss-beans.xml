@@ -1,0 +1,78 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+<deployment xmlns="urn:jboss:pojo:7.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="urn:jboss:pojo:7.0 jboss-mc_7_0.xsd">
+
+    <bean name="Bean">
+        <alias>Alias-Bean</alias>
+        <constructor factory-class="org.jboss.as.test.integration.pojo.support.TFactory" factory-method="createBean">
+            <parameter><value>test</value></parameter>
+        </constructor>
+        <property name="injectee"><inject bean="Injectee"/></property>
+        <start>
+            <parameter><value>start</value></parameter>
+        </start>
+        <stop>
+            <parameter><value>stop</value></parameter>
+        </stop>
+        <install method="install" state="CREATE">
+            <parameter><value>install</value></parameter>
+        </install>
+        <install bean="Alias-Injectee" method="sayHello">
+            <parameter><value>from-other-bean</value></parameter>
+        </install>
+    </bean>
+
+    <bean name="Injectee" class="org.jboss.as.test.integration.pojo.support.TInjectee">
+        <constructor>
+            <parameter><value>Hola, </value></parameter>
+        </constructor>
+        <alias>Alias-Injectee</alias>
+        <depends>Blocker</depends>
+    </bean>
+
+    <bean name="ParamTextValue" class="org.jboss.as.test.integration.pojo.support.TInjectee">
+        <constructor>
+            <parameter>Wazup, </parameter>
+        </constructor>
+        <install method="sayHello">
+            <parameter><value>POJO subsystem!</value></parameter>
+        </install>
+    </bean>
+
+    <bean name="Blocker" class="org.jboss.as.test.integration.pojo.support.TInjectee"/>
+
+    <bean name="B2" class="org.jboss.as.test.integration.pojo.support.TBean">
+        <property name="injectee">
+            <value-factory bean="TFactory" method="defaultInjectee">
+                <parameter><value>42</value></parameter>
+            </value-factory>
+        </property>
+    </bean>
+
+    <bean name="B3" class="org.jboss.as.test.integration.pojo.support.TBean">
+        <property name="injectee"><inject bean="Bean" property="injectee"/></property>
+    </bean>
+
+    <bean name="TFactory" class="org.jboss.as.test.integration.pojo.support.TFactory" mode="on demand">
+        <constructor>
+            <parameter><value>Zivjo, </value></parameter>
+        </constructor>
+    </bean>
+
+    <bean name="SloInjectee">
+        <constructor factory-method="defaultInjectee">
+            <factory bean="TFactory"/>
+        </constructor>
+        <install method="sayHello">
+            <parameter><value>JBossAS7!</value></parameter>
+        </install>
+        <uninstall method="sayHello">
+            <parameter><value>or should I say bye bye JBossAS7!</value></parameter>
+        </uninstall>
+    </bean>
+
+</deployment>

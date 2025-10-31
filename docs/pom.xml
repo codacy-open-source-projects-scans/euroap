@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.wildfly</groupId>
+        <artifactId>wildfly-parent</artifactId>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>39.0.0.Beta1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>docs</artifactId>
+
+    <name>WildFly: Documentation</name>
+
+    <properties>
+        <wildfly.github.io.dir>
+            ..${file.separator}..${file.separator}wildfly.github.io${file.separator}${product.docs.server.version}
+        </wildfly.github.io.dir>
+        <jboss.home>${project.build.directory}/wildfly</jboss.home>
+        <!-- Don't try to deploy the module -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.asciidoctor</groupId>
+                <artifactId>asciidoctor-maven-plugin</artifactId>
+                <configuration>
+                    <attributes>
+                        <!-- TODO Validate the need for these that were pulled out of wildfly-parent -->
+                        <source-highlighter>coderay</source-highlighter>
+                        <icons>font</icons>
+                        <pagenums></pagenums>
+                        <version>${project.version}</version>
+                        <idprefix></idprefix>
+                        <idseparator>-</idseparator>
+                        <allow-uri-read>true</allow-uri-read>
+                        <revnumber>${project.version}</revnumber>
+                        <revdate>${maven.build.timestamp}</revdate>
+                        <organization>${project.organization.name}</organization>
+                        <!-- end TODO -->
+                        <nofooter>true</nofooter>
+                        <docinfo>shared</docinfo>
+                        <!-- Attributes to use in the asciidoc source files. Please leave in alphabetical order -->
+                        <appservername>${full.dist.product.release.name}</appservername>
+                        <oracle-javadoc>https://docs.oracle.com/en/java/javase/17/docs/api</oracle-javadoc>
+                        <resteasyversion>${version.org.jboss.resteasy}</resteasyversion>
+                        <wildflyversion>${product.docs.server.version}</wildflyversion>
+                        <copyright-blurb>${wildfly.copyright}</copyright-blurb>
+                        <!-- Default asciidoc setting attributes -->
+                        <linkcss>false</linkcss>
+                        <sectanchors/>
+                        <toc>left</toc>
+                    </attributes>
+                    <backend>html5</backend>
+                    <resources>
+                        <resource>
+                            <directory>src/main/asciidoc/images</directory>
+                            <targetPath>images</targetPath>
+                        </resource>
+                        <resource>
+                            <directory>src/main/asciidoc/downloads</directory>
+                            <targetPath>downloads</targetPath>
+                        </resource>
+                    </resources>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>output-html</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>process-asciidoc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack-feature-pack-doc</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>${project.groupId}</groupId>
+                                    <artifactId>wildfly-galleon-pack</artifactId>
+                                    <version>${project.version}</version>
+                                    <classifier>doc</classifier>
+                                    <type>zip</type>
+                                    <overWrite>true</overWrite>
+                                    <outputDirectory>${project.build.directory}/generated-docs/feature-pack</outputDirectory>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>copy-site</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>copy-site</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${wildfly.github.io.dir}</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}${file.separator}generated-docs</directory>
+                                            <filtering>false</filtering>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

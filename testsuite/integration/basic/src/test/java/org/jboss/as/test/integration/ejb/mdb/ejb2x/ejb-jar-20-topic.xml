@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<!DOCTYPE ejb-jar
+        PUBLIC "-//Sun Microsystems, Inc.//DTD Enterprise JavaBeans 2.0//EN"
+        "http://java.sun.com/dtd/ejb-jar_2_0.dtd">
+<ejb-jar>
+    <enterprise-beans>
+        <message-driven>
+            <ejb-name>EJB20Topic1MDB</ejb-name>
+            <ejb-class>org.jboss.as.test.integration.ejb.mdb.ejb2x.EJB2xMDB</ejb-class>
+            <transaction-type>Container</transaction-type>
+            <message-driven-destination>
+                <destination-type>jakarta.jms.Topic</destination-type>
+            </message-driven-destination>
+            <resource-env-ref>
+                <resource-env-ref-name>jms/replyQueue</resource-env-ref-name>
+                <resource-env-ref-type>jakarta.jms.Queue</resource-env-ref-type>
+            </resource-env-ref>
+        </message-driven>
+        <message-driven>
+            <ejb-name>EJB20Topic2MDB</ejb-name>
+            <ejb-class>org.jboss.as.test.integration.ejb.mdb.ejb2x.EJB2xMDB</ejb-class>
+            <transaction-type>Container</transaction-type>
+            <message-driven-destination>
+                <destination-type>jakarta.jms.Topic</destination-type>
+            </message-driven-destination>
+            <resource-env-ref>
+                <resource-env-ref-name>jms/replyQueue</resource-env-ref-name>
+                <resource-env-ref-type>jakarta.jms.Queue</resource-env-ref-type>
+            </resource-env-ref>
+        </message-driven>
+    </enterprise-beans>
+</ejb-jar>

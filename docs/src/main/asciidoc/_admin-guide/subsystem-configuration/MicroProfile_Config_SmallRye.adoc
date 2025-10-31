@@ -1,0 +1,247 @@
+[[MicroProfile_Config_SmallRye]]
+= MicroProfile Config Subsystem
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+Support for https://microprofile.io/project/eclipse/microprofile-config[MicroProfile Config] is provided by
+ the _microprofile-config-smallrye_ subsystem.
+
+[[required-extension-microprofile-config-smallrye]]
+== Required Extension
+
+This extension is included in the standard configurations included in the
+WildFly distribution.
+
+You can also add the extension to a configuration without it either by adding
+an `<extension module="org.wildfly.extension.microprofile.config-smallrye"/>`
+element to the xml or by using the following CLI operation:
+
+[source,options="nowrap"]
+----
+[standalone@localhost:9990 /] /extension=org.wildfly.extension.microprofile.config-smallrye:add
+----
+
+== Supported ConfigSources
+
+In addition to the default `ConfigSources` specified by the MicroProfile Config specification
+(environment variables, System properties and `META-INF/microprofile-config.properties` file), the
+`microprofile-config-smallrye` provides additional types of `ConfigSource`
+
+=== ConfigSource from Properties
+
+You can store properties directly in a `config-source` in the subsystem by using the `properties`
+attribute when you add the `config-source`:
+
+[source,options="nowrap"]
+----
+/subsystem=microprofile-config-smallrye/config-source=props:add(properties={"prop1" = "foo", "prop2" = "bar"})
+----
+
+This results in the XML configuration:
+
+[source,xml,options="nowrap"]
+----
+<subsystem xmlns="urn:wildfly:microprofile-config-smallrye:1.0">
+    <config-source name="props">
+        <property name="prop1" value="foo"/>
+        <property name="prop2" value="bar"/>
+    </config-source>
+</subsystem>
+----
+
+=== ConfigSource from Directory
+
+You can also read properties from a directory where each file is the name of
+a property and the file content is the value of the property.
+
+For example, let's imagine that the directory `/etc/config/numbers-app/` contains 2 files:
+
+ * the `num.size` file contains the value `5`
+ * the `num.max` file contains the value `100`
+
+We can create a config-source` to access these properties by using the operation:
+
+[source,options="nowrap"]
+----
+/subsystem=microprofile-config-smallrye/config-source=file-props:add(dir={path=/etc/config/numbers-app})
+----
+
+This results in the XML configuration:
+
+[source,xml,options="nowrap"]
+----
+<subsystem xmlns="urn:wildfly:microprofile-config-smallrye:2.0">
+    <config-source name="file-props">
+        <dir path="/etc/config/numbers-app"/>
+    </config-source>
+</subsystem>
+----
+
+With that configuration, any application deployed in WildFly can use the `num.size` and
+`num.max` properties that are stored in the directory:
+
+[source,java,options="nowrap"]
+----
+@Inject
+@ConfigProperty(name = "num.size")
+int numSize; // <1>
+
+@Inject
+@ConfigProperty(name = "num.max")
+int numMax; // <2>
+----
+<1> will be set to 5
+<2> will be set to 100
+
+[NOTE]
+This corresponds to the layout used by https://docs.openshift.com/enterprise/3.2/dev_guide/configmaps.html[OpenShift ConfigMaps].
+The `dir` value corresponds to the `mountPath` in the ConfigMap definition in OpenShift or Kubernetes.
+
+==== ConfigSources from Root directory
+You can also point to a root directory by adjusting the examples in the preceding section to include
+`root=true` when defining them. Top level directories within this root directory each become an
+individual `ConfigSource` reading from a directory similar to what we saw earlier in
+<<configsource-from-directory, ConfigSource from Directory>>. Any directories below the top-level
+directories are ignored. Also, any files in the root directory are ignored; only files in the top
+level directories within the root directory will be used for the configuration.
+
+This is especially useful when running on OpenShift where constructs such as `ConfigMap` and
+`ServiceBinding` instances get mapped under
+a common known location. For example if there are two `ConfigMap` instances (for this example,
+we will call them `map-a`, and `map-b`) used by your application pod, they will
+each get mapped under `/etc/config`. So you would have `/etc/config/map-a` and `/etc/config/map-b`
+directories.
+
+Each of these directories will have files where the file name is the name of the property and the file
+content is the value of the property, like we saw earlier.
+
+We can thus simply run the following CLI command to pick up all these child directories as
+a `ConfigSource` each:
+[source,options="nowrap"]
+----
+/subsystem=microprofile-config-smallrye/config-source=config-map-root:add(dir={path=/etc/config, root=true})
+----
+
+This results in the XML configuration:
+
+[source,xml,options="nowrap"]
+----
+<subsystem xmlns="urn:wildfly:microprofile-config-smallrye:2.0">
+    <config-source name="config-map-root">
+        <dir path="/etc/config" root="true"/>
+    </config-source>
+</subsystem>
+----
+Assuming the `/etc/config` directory contains the `map-a` and `map-b` directories we are using
+for this example, the above is analogous to doing:
+----
+/subsystem=microprofile-config-smallrye/config-source=file-props:add(dir={path=/etc/config/map-a})
+/subsystem=microprofile-config-smallrye/config-source=file-props:add(dir={path=/etc/config/map-b})
+----
+Specifying the root directory rather than each individual directory removes the need to know the
+exact names of each entry under the common parent directory (this is especially useful in some
+OpenShift scenarios where the names of these directories are auto-generated).
+
+The situation where two `ConfigSource` entries under the same root both contain the same property
+should be avoided. However, to make this situation deterministic, the directories representing each
+`ConfigSource` are sorted by their name according to standard Java sorting rules before doing the
+lookup of values. To make this more concrete, if we have the following entries:
+* `/etc/config/map-a/name` contains `kabir`
+* `/etc/config/map-b/name` contains `jeff`
+
+Since `map-a` will come before `map-b` after sorting, in the following scenario `kabir` (coming from
+`map-a`) will be injected for the following `username` field:
+
+[source,java,options="nowrap"]
+----
+@Inject
+@ConfigProperty(name = "name")
+String username;
+----
+
+
+You may override this default sorting by including a file called `config_ordinal` in a directory. The
+ordinal specified in that file will be used for config values coming from that directory. Building
+on our previous example, if we had:
+* `/etc/config/map-a/config_ordinal` contains `120`
+* `/etc/config/map-b/config_ordinal` contains `140`
+
+Since now `map-b` has a higher ordinal (`140`) than `map-a` (`120`), we will instead inject the value
+`jeff` for the earlier `username` field.
+
+If there is no `config_ordinal` file in a top-level directory under the root directory, the
+ordinal used when specifying the `ConfigSource` will be used for that directory.
+
+
+=== ConfigSource from Class
+
+You can create a specific type of `ConfigSource` implementation by creating a `config-source` resource
+with a `class` attribute.
+
+For example, you can provide an implementation of `org.eclipse.microprofile.config.spi.ConfigSource`
+that is named `org.example.MyConfigSource` and provided by a JBoss module named `org.example`:
+
+----
+/subsystem=microprofile-config-smallrye/config-source=my-config-source:add(class={name=org.example.MyConfigSource, module=org.example})
+----
+
+This results in the XML configuration:
+
+[source,xml,options="nowrap"]
+----
+<subsystem xmlns="urn:wildfly:microprofile-config-smallrye:2.0">
+    <config-source name="my-config-source">
+        <class name="org.example.MyConfigSource" module="org.example"/>
+    </config-source>
+</subsystem>
+----
+
+All properties from this `ConfigSource` will be available to any WildFly deployment.
+
+=== ConfigSourceProvider from Class
+
+You can create a specific type of `ConfigSourceProvider` implementation by creating a `config-source-provider` resource
+with a `class` attribute.
+
+For example, you can provide an implementation of `org.eclipse.microprofile.config.spi.ConfigSourceProvider`
+that is named `org.example.MyConfigSourceProvider` and provided by a JBoss module named `org.example`:
+
+----
+/subsystem=microprofile-config-smallrye/config-source-provider=my-config-source-provider:add(class={name=org.example.MyConfigSourceProvider, module=org.example})
+----
+
+This results in the XML configuration:
+
+[source,xml,options="nowrap"]
+----
+<subsystem xmlns="urn:wildfly:microprofile-config-smallrye:2.0">
+    <config-source-provider name="my-config-source-provider">
+         <class name="org.example.MyConfigSourceProvider" module="org.example"/>
+    </config-source-provider>
+</subsystem>
+----
+
+All properties from the `ConfigSource`s provided by this `ConfigSourceProvider` will be available to any WildFly deployment.
+
+== Deployment
+
+Applications that are deployed in WildFly must have Jakarta Contexts and Dependency Injection enabled (e.g. with a `META-INF/beans.xml`
+or by having Jakarta Contexts and Dependency Injection Bean annotation) to be able to use MicroProfile Config in their code.
+
+
+== Component Reference
+
+The MicroProfile Config implementation is provided by the SmallRye Config project.
+
+****
+
+* https://microprofile.io/project/eclipse/microprofile-config[MicroProfile Config]
+* http://github.com/smallrye/smallrye-config/[SmallRye Config]
+
+****

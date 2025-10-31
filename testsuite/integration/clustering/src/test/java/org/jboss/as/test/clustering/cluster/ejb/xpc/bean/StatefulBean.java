@@ -1,0 +1,167 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.jboss.as.test.clustering.cluster.ejb.xpc.bean;
+
+import jakarta.ejb.Remove;
+import jakarta.ejb.TransactionAttribute;
+import jakarta.ejb.TransactionAttributeType;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.PersistenceContextType;
+
+import org.hibernate.Session;
+import org.hibernate.stat.CacheRegionStatistics;
+import org.jboss.logging.Logger;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author Paul Ferraro
+ * @author Scott Marlow
+ */
+@jakarta.ejb.Stateful(name = "StatefulBean")
+public class StatefulBean implements Stateful {
+
+    private static final Logger log = Logger.getLogger(StatefulBean.class);
+    public static final String MODULE = "stateful";
+
+    @PersistenceContext(unitName = "mypc", type = PersistenceContextType.EXTENDED)
+    EntityManager em;
+
+    String version = "initial";
+    Map<String, String> valueBag = new HashMap<>();
+
+    /**
+     * Create the employee but don't commit the change to the database, instead keep it in the
+     * extended persistence context.
+     *
+     * @param name
+     * @param address
+     * @param id
+     */
+    @Override
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+    public void createEmployee(String name, String address, int id) {
+
+        Employee emp = new Employee();
+        emp.setId(id);
+        emp.setAddress(address);
+        emp.setName(name);
+        em.persist(emp);
+        logStats("createEmployee");
+        version = "created";
+        valueBag.put("version", "created");
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+    public Employee getEmployee(int id) {
+        logStats("getEmployee " + id);
+        return em.find(Employee.class, id, LockModeType.NONE);
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+    public Employee getSecondBeanEmployee(int id) {
+        logStats("getSecondBeanEmployee");
+        //return secondBean.getEmployee(id);
+        return em.find(Employee.class, id, LockModeType.NONE);
+    }
+
+    @Override
+    @Remove
+    public void destroy() {
+        logStats("destroy");
+        version = "destroyed";
+        valueBag.put("version", version);
+    }
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void deleteEmployee(int id) {
+        Employee employee = em.find(Employee.class, id, LockModeType.NONE);
+        em.remove(employee);
+        logStats("deleteEmployee");
+        version = "deletedEmployee";
+        valueBag.put("version", version);
+    }
+
+
+    @Override
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    public void flush() {
+        logStats("flush");
+        version = "flushed";
+        valueBag.put("version", version);
+    }
+
+    @Override
+    public void clear() {
+        em.clear();
+        logStats("clear");
+        version = "cleared";
+        valueBag.put("version", version);
+    }
+
+    @TransactionAttribute(TransactionAttributeType.NOT_SUPPORTED)
+    @Override
+    public void echo(String message) {
+        log.trace("echo entered for " + message);
+        logStats("echo " + message);
+        log.trace("echo completed for " + message);
+    }
+
+
+    @TransactionAttribute(TransactionAttributeType.REQUIRED)
+    @Override
+    public int executeNativeSQL(String nativeSql) {
+        logStats("executeNativeSQL");
+        return em.createNativeQuery(nativeSql).executeUpdate();
+    }
+
+    @Override
+    public String getVersion() {
+        return version;
+    }
+
+    @Override
+    public long getEmployeesInMemory() {
+        Session session = em.unwrap(Session.class);
+        String[] entityRegionNames = session.getSessionFactory().getStatistics().getSecondLevelCacheRegionNames();
+        String legacyPrefix = session.getSessionFactory().getSessionFactoryOptions().getCacheRegionPrefix() + ".";
+        for (String qualifiedName : entityRegionNames) {
+            if (qualifiedName.contains(Employee.class.getName())) {
+                String name = qualifiedName.startsWith(legacyPrefix) ? qualifiedName.substring(legacyPrefix.length()) : qualifiedName;
+                CacheRegionStatistics stats = session.getSessionFactory().getStatistics().getDomainDataRegionStatistics(name);
+                return stats.getElementCountInMemory();
+            }
+        }
+        return -1;
+
+    }
+
+    private void logStats(String methodName) {
+        Session session = em.unwrap(Session.class);
+        log.trace(methodName + "(version=" + version + ", HashMap version=" + valueBag.get("version") + ") logging statistics for session = " + session);
+        session.getSessionFactory().getStatistics().setStatisticsEnabled(true);
+        session.getSessionFactory().getStatistics().logSummary();
+        String[] entityRegionNames = session.getSessionFactory().getStatistics().getSecondLevelCacheRegionNames();
+        String legacyPrefix = session.getSessionFactory().getSessionFactoryOptions().getCacheRegionPrefix() + ".";
+        for (String qualifiedName : entityRegionNames) {
+            log.trace("qualified cache entity region name = " + qualifiedName);
+            String name = qualifiedName.startsWith(legacyPrefix) ? qualifiedName.substring(legacyPrefix.length()) : qualifiedName;
+            log.trace("cache entity region name = " + name);
+            CacheRegionStatistics stats = session.getSessionFactory().getStatistics().getCacheRegionStatistics(name);
+            log.trace("2lc for " + name + ": " + stats.toString());
+
+        }
+        // we will want to return the SecondLevelCacheStatistics for Employee
+
+    }
+
+}

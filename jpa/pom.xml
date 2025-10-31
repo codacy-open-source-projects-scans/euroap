@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.wildfly</groupId>
+        <artifactId>wildfly-parent</artifactId>
+        <!--
+        Maintain separation between the artifact id and the version to help prevent
+        merge conflicts between commits changing the GA and those changing the V.
+        -->
+        <version>39.0.0.Beta1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>wildfly-jpa-parent</artifactId>
+    <packaging>pom</packaging>
+    <name>WildFly: JPA</name>
+
+    <properties>
+        <!-- Default to the legacy WildFly dependency set until most child modules use standard WildFly dependencies -->
+        <dependency.management.pom.artifactId>wildfly-standard-ee-bom</dependency.management.pom.artifactId>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>${dependency.management.pom.artifactId}</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <modules>
+        <module>hibernate6</module>
+        <module>hibernatesearch</module>
+        <module>subsystem</module>
+        <module>spi</module>
+        <module>eclipselink</module>
+    </modules>
+
+    <profiles>
+        <profile>
+            <id>skip.preview</id>
+            <activation>
+                <property>
+                    <name>!no.preview.build</name>
+                </property>
+            </activation>
+            <modules>
+                <module>hibernate7</module>
+                <module>persistence-cdi-extension</module>
+            </modules>
+        </profile>
+    </profiles>
+</project>

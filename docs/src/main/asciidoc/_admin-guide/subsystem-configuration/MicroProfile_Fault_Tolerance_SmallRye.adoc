@@ -1,0 +1,115 @@
+[[MicroProfile-Fault-Tolerance-SmallRye]]
+= MicroProfile Fault Tolerance Subsystem
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+== Specification
+
+WildFly's MicroProfile Fault Tolerance subsystem implements MicroProfile Fault Tolerance 4.1.
+
+This MicroProfile specification provides the following interceptor bindings in its `org.eclipse.microprofile.faulttolerance` package:
+
+* `@Timeout` to define a maximum duration or an execution.
+* `@Retry` to attempt execution again in case of a failure.
+* `@Fallback`  to provide an alternative execution in case of a prior failure.
+* `@CircuitBreaker` to automatically fail-fast when an execution repeatedly fails.
+* `@Bulkhead` to limit concurrent executions so that one method doesn't overload the entire system.
+* `@Asynchronous` to execute a method asynchronously.
+
+For complete documentation please refer to MicroProfile Fault Tolerance 4.1 https://download.eclipse.org/microprofile/microprofile-fault-tolerance-4.1/microprofile-fault-tolerance-spec-4.1.html[specification].
+
+Support for https://microprofile.io/project/eclipse/microprofile-fault-tolerance[MicroProfile Fault Tolerance] is
+provided by the `microprofile-fault-tolerance-smallrye` subsystem.
+
+The MicroProfile Fault Tolerance implementation is provided by the https://github.com/smallrye/smallrye-fault-tolerance[SmallRye Fault Tolerance] project.
+
+
+[[required-extension-microprofile-fault-tolerance-smallrye]]
+== Required Extension
+
+This extension is automatically included in the `standalone-microprofile` server profiles,
+however, it is not included in the default configuration of WildFly.
+
+You can add the extension to an existing server profile by using the following CLI operations:
+
+[source,options="nowrap"]
+----
+[standalone@localhost:9990 /] /extension=org.wildfly.extension.microprofile.fault-tolerance-smallrye:add
+{"outcome" => "success"}
+
+[standalone@localhost:9990 /] /subsystem=microprofile-fault-tolerance-smallrye:add
+{
+    "outcome" => "success",
+    "response-headers" => {
+        "operation-requires-reload" => true,
+        "process-state" => "reload-required"
+    }
+}
+[standalone@localhost:9990 /] reload
+----
+
+Alternatively, the same can be achieved by adding an element to the application server profile XML to `<extensions>` section:
+
+[source,xml,options="nowrap"]
+----
+<extension module="org.wildfly.extension.microprofile.fault-tolerance-smallrye"/>
+----
+
+and then the subsystem in the `<profile>` section:
+
+[source,xml,options="nowrap"]
+----
+<subsystem xmlns="urn:wildfly:microprofile-fault-tolerance-smallrye:1.0"/>
+----
+
+The subsystem itself does not have any configurable attributes nor resources.
+
+[[metrics-microprofile-fault-tolerance-smallrye]]
+== Metrics
+
+This extension requires the MicroProfile Telemetry extension and subsystem
+to provide metrics collection integration as defined by the specification.
+Please follow the instructions in the <<MicroProfile_Telemetry,MicroProfile Telemetry Subsystem section>>.
+
+If the Micrometer subsystem is available, metrics collection will be also done by Micrometer.
+In cases where both subsystems are available, metrics will be collected using both system unless disabled explicitly
+using the MicroProfile Config properties below.
+
+If neither subsystem is available, no Fault Tolerance metrics data will be collected.
+
+NOTE: Please note that while the specification defines metrics integration with MicroProfile Metrics,
+WildFly no longer provides this specification implementation, subsystem and thus neither the integration.
+
+
+== Configuration
+
+Apart from configuration properties defined by the specification, the SmallRye implementation provides the following
+configuration properties which can be provided using standard MicroProfile Config mechanisms:
+
+.SmallRye Fault Tolerance configuration properties
+|===
+|Name |Default |Description
+
+|`io.smallrye.faulttolerance.mainThreadPoolSize`
+|`100`
+|Maximum number of threads in the thread pool.
+
+|`io.smallrye.faulttolerance.mainThreadPoolQueueSize`
+|`-1` (unbounded)
+|Size of the queue that the thread pool should use.
+
+|`smallrye.faulttolerance.micrometer.disabled`
+|`false`
+|Explicitly disable metrics collection using Micrometer.
+
+|`smallrye.faulttolerance.opentelemetry.disabled`
+|`false`
+|Explicitly disable metrics collection using MicroProfile Telemetry.
+
+|===

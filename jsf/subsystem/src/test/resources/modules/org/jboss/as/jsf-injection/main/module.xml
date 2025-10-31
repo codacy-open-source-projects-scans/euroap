@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<module xmlns="urn:jboss:module:1.5" name="org.jboss.as.jsf-injection">
+    <properties>
+        <property name="jboss.api" value="private"/>
+    </properties>
+
+    <resources>
+        <resource-root path="jboss-as-jsf-injection-7.2.0.Alpha1-SNAPSHOT.jar"/>
+        <!-- Insert resources here -->
+    </resources>
+
+    <dependencies>
+        <module name="jakarta.faces.impl"/>
+        <module name="jakarta.servlet.api"/>
+
+        <module name="org.jboss.as.web"/>
+        <module name="org.jboss.logging"/>
+
+        <!-- added this for MyFacesAnnotationProvider -->
+        <module name="jakarta.faces.api"/>
+    </dependencies>
+</module>

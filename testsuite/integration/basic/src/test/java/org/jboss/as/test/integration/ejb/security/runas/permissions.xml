@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<permissions version="7">
+    <permission>
+        <class-name>javax.security.auth.AuthPermission</class-name>
+        <name>modifyPrincipals</name>
+    </permission>
+    <permission>
+        <class-name>org.wildfly.security.permission.ElytronPermission</class-name>
+        <name>getSecurityDomain</name>
+    </permission>
+    <permission>
+        <class-name>org.wildfly.security.permission.ElytronPermission</class-name>
+        <name>authenticate</name>
+    </permission>
+    <!-- TODO https://issues.redhat.com/browse/WFLY-15289 -->
+    <!-- We need to verify if deployments should require this permission set. -->
+    <permission>
+        <class-name>org.wildfly.security.permission.ElytronPermission</class-name>
+        <name>handleSecurityEvent</name>
+    </permission>
+    <permission>
+        <class-name>org.wildfly.security.permission.ElytronPermission</class-name>
+        <name>setRunAsPrincipal</name>
+    </permission>
+    <permission>
+        <class-name>org.wildfly.security.auth.permission.ChangeRoleMapperPermission</class-name>
+        <name>ejb</name>
+    </permission>
+</permissions>

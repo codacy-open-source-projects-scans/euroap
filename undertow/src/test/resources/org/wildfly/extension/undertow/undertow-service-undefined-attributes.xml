@@ -1,0 +1,32 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<subsystem xmlns="urn:jboss:domain:undertow:12.0">
+   <byte-buffer-pool name="default"/>
+   <buffer-cache buffer-size="1025" buffers-per-region="1054" max-regions="15" name="default"/>
+   <server name="default-server">
+      <http-listener name="default" socket-binding="http" redirect-socket="ajp" enable-http2="true"/>
+      <https-listener name="https" socket-binding="https-non-default" security-realm="ApplicationRealm" enable-http2="true"/>
+      <host name="default-host" alias="localhost">
+         <location name="/" handler="welcome-content" />
+         <http-invoker security-realm="ApplicationRealm"/>
+      </host>
+   </server>
+   <servlet-container name="default">
+      <jsp-config/>
+      <websockets/>
+   </servlet-container>
+   <handlers>
+      <file name="welcome-content" path="${jboss.home.dir}/welcome-content" />
+   </handlers>
+   <application-security-domains>
+      <application-security-domain enable-jacc="true" http-authentication-factory="elytron-factory" name="other" override-deployment-config="true" enable-jaspi="false" integrated-jaspi="false">
+         <single-sign-on client-ssl-context="my-ssl-context" cookie-name="SSOID" domain="${prop.domain:myDomain}" http-only="true" key-alias="my-key-alias" key-store="my-key-store" path="/path" secure="true">
+            <credential-reference alias="my-credential-alias" store="my-credential-store" type="password"/>
+         </single-sign-on>
+      </application-security-domain>
+      <application-security-domain security-domain="elytron-domain" name="domain-ref" />
+   </application-security-domains>
+</subsystem>

@@ -1,0 +1,14 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<subsystem xmlns="urn:jboss:domain:datasources:7.2">
+    <datasources>
+        <datasource jndi-name="java:jboss/datasources/DS"
+                    pool-name="DS">
+            <transaction-isolation>TRANSACTION</transaction-isolation>
+            <driver>h2</driver>
+        </datasource>
+    </datasources>
+</subsystem>

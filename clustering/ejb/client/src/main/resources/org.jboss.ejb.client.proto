@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package org.jboss.ejb.client;
+
+// IDs: 335 - 339
+
+/**
+ * @TypeId(335)
+ */
+message SessionID {
+	bytes	encoded	= 1;
+}

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<job id="chunkPartition" xmlns="http://xmlns.jcp.org/xml/ns/javaee" version="1.0">
+    <step id="step1">
+        <chunk item-count="3">
+            <reader ref="countingItemReader">
+                <properties>
+                    <property name="reader.start" value="#{jobParameters['reader.start']}"/>
+                    <property name="reader.end" value="#{jobParameters['reader.end']}"/>
+                </properties>
+            </reader>
+            <writer ref="countingItemWriter">
+                <properties>
+                    <property name="writer.sleep.time" value="#{jobParameters['writer.sleep.time']}"/>
+                </properties>
+            </writer>
+        </chunk>
+    </step>
+</job>

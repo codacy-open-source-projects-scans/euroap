@@ -1,0 +1,14 @@
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.1">
+    <deployment>
+        <resources>
+            <resource-root path="lib/jcetestsigned.jar" use-physical-code-source="true"/>
+        </resources>
+    </deployment>
+    <sub-deployment name="test.war">
+    </sub-deployment>
+</jboss-deployment-structure>

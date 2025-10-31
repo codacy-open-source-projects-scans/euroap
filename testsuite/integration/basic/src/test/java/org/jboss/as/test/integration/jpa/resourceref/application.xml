@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright The WildFly Authors
+  ~ SPDX-License-Identifier: Apache-2.0
+  -->
+
+<application xmlns="http://java.sun.com/xml/ns/javaee"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="6"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/application_6.xsd">
+    <module>
+        <ejb>ejb.jar</ejb>
+    </module>
+    <resource-ref>
+        <res-ref-name>testDS</res-ref-name>
+        <lookup-name>java:jboss/datasources/ExampleDS</lookup-name>
+    </resource-ref>
+
+</application>

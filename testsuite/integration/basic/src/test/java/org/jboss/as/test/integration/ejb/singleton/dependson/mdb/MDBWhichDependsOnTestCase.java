@@ -1,0 +1,107 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.jboss.as.test.integration.ejb.singleton.dependson.mdb;
+
+import jakarta.annotation.Resource;
+import jakarta.ejb.EJB;
+import jakarta.jms.Message;
+import jakarta.jms.Queue;
+
+import org.jboss.arquillian.container.test.api.Deployer;
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.arquillian.api.ServerSetup;
+import org.jboss.as.test.integration.common.jms.JMSOperations;
+import org.jboss.as.test.integration.ejb.mdb.JMSMessagingUtil;
+import org.jboss.as.test.shared.TimeoutUtil;
+import org.jboss.logging.Logger;
+import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import java.util.PropertyPermission;
+
+import static org.jboss.as.test.shared.PermissionUtils.createPermissionsXmlAsset;
+
+/**
+ * WFLY-2732 - test if MDB can access @DependsOn ejbs in @PostConstruct and @PreDestroy annotated methods.
+ *
+ * @author baranowb
+ */
+@RunWith(Arquillian.class)
+@ServerSetup({JmsQueueServerSetupTask.class, SetupModuleServerSetupTask.class})
+public class MDBWhichDependsOnTestCase {
+
+    private static final Logger logger = Logger.getLogger(MDBWhichDependsOnTestCase.class);
+
+    @ArquillianResource
+    Deployer deployer;
+
+    @EJB(mappedName = Constants.EJB_JMS_NAME)
+    private JMSMessagingUtil jmsUtil;
+
+    @EJB
+    private CallCounterInterface counter;
+
+    @Resource(mappedName = Constants.QUEUE_JNDI_NAME)
+    private Queue queue;
+
+    @Resource(mappedName = Constants.QUEUE_REPLY_JNDI_NAME)
+    private Queue replyQueue;
+
+    @Deployment(name = Constants.DEPLOYMENT_NAME_COUNTER, order = 0, managed = true, testable = true)
+    public static Archive<?> getTestArchive() throws Exception {
+        JavaArchive jar = ShrinkWrap.create(JavaArchive.class, Constants.DEPLOYMENT_JAR_NAME_COUNTER);
+        jar.addClass(CallCounterSingleton.class);
+        jar.addClass(MDBWhichDependsOnTestCase.class);
+        jar.addClass(Constants.class);
+        jar.addClasses(JMSMessagingUtil.class, TimeoutUtil.class);
+        jar.addClasses(JmsQueueServerSetupTask.class, SetupModuleServerSetupTask.class);
+        jar.addAsManifestResource(new StringAsset("Dependencies: org.jboss.as.controller-client, org.jboss.dmr, "
+                + Constants.TEST_MODULE_NAME_FULL + "\n"), "MANIFEST.MF");
+        jar.addAsManifestResource(createPermissionsXmlAsset(
+                new PropertyPermission(TimeoutUtil.FACTOR_SYS_PROP, "read")), "permissions.xml");
+        return jar;
+    }
+
+    @Deployment(name = Constants.DEPLOYMENT_NAME_MDB, order = 1, managed = false, testable = false)
+    public static Archive getMDBArchive() {
+
+        final JavaArchive jar = ShrinkWrap.create(JavaArchive.class, Constants.DEPLOYMENT_JAR_NAME_MDB);
+        jar.addPackage(JMSOperations.class.getPackage());
+        jar.addClasses(JMSMessagingUtil.class, TimeoutUtil.class);
+        jar.addClass(MDBWhichDependsOn.class);
+        jar.addClass(Constants.class);
+        jar.addClass(CallCounterProxy.class);
+        jar.addAsManifestResource(new StringAsset("Dependencies: org.jboss.as.controller-client, org.jboss.dmr, "
+                + Constants.TEST_MODULE_NAME_FULL + "\n"), "MANIFEST.MF");
+        jar.addAsManifestResource(createPermissionsXmlAsset(
+                new PropertyPermission(TimeoutUtil.FACTOR_SYS_PROP, "read")), "permissions.xml");
+        return jar;
+    }
+
+    /**
+     * Test an annotation based MDB with properties substitution
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testAnnoBasedMDB() throws Exception {
+        this.deployer.deploy(Constants.DEPLOYMENT_NAME_MDB);
+        this.jmsUtil.sendTextMessage("Say Nihao to new message!", this.queue, this.replyQueue);
+        final Message reply = this.jmsUtil.receiveMessage(replyQueue, 5000);
+        Assert.assertNotNull("Reply message was null on reply queue: " + this.replyQueue, reply);
+        this.deployer.undeploy(Constants.DEPLOYMENT_NAME_MDB);
+        Assert.assertTrue("PostConstruct not called!", counter.isPostConstruct());
+        Assert.assertTrue("Message not called!", counter.isMessage());
+        Assert.assertTrue("PreDestroy not called!", counter.isPreDestroy());
+    }
+}

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package org.jboss.as.weld.ejb;
+
+import "java.lang.proto";
+import "org.jboss.ejb.client.proto";
+import "org.wildfly.clustering.marshalling.protostream.proto";
+
+/**
+ * @TypeId(495)
+ */
+message SerializedStatefulSessionObject {
+	string	componentServiceName	 = 1;
+	org.jboss.ejb.client.SessionID	id	 = 2;
+	repeated	java.lang.Class	viewClass	 = 3;
+	repeated	string	viewServiceName	 = 4;
+}
+
+/**
+ * @TypeId(496)
+ */
+message StatefulSessionObjectReferenceImpl {
+	org.wildfly.clustering.marshalling.protostream.Any	proxy	 = 1;
+}

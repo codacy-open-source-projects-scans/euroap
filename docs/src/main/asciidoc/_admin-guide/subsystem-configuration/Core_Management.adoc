@@ -1,0 +1,168 @@
+[[Core_Management]]
+= Core Management Subsystem
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+The core management subsystem is composed of services used to manage the
+server or monitor its status. +
+The core management subsystem configuration may be used to:
+
+* register a listener for a server lifecycle events.
+* list the last configuration changes on a server.
+
+[[lifecycle-listener]]
+== Lifecycle listener
+
+You can create an implementation of
+_org.wildfly.extension.core.management.client.ProcessStateListener_
+which will be notified on running and runtime configuration state
+changes thus enabling the developer to react to those changes.
+
+In order to use this feature you need to create your own module then
+configure and deploy it using the core management subsystem.
+
+For example let's create a simple listener :
+
+[source,java,options="nowrap"]
+----
+ public class SimpleListener implements ProcessStateListener {
+
+    private File file;
+    private FileWriter fileWriter;
+    private ProcessStateListenerInitParameters parameters;
+
+    @Override
+    public void init(ProcessStateListenerInitParameters parameters) {
+        this.parameters = parameters;
+        this.file = new File(parameters.getInitProperties().get("file"));
+        try {
+            fileWriter = new FileWriter(file, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void cleanup() {
+        try {
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            fileWriter = null;
+        }
+    }
+
+    @Override
+    public void runtimeConfigurationStateChanged(RuntimeConfigurationStateChangeEvent evt) {
+        try {
+            fileWriter.write(String.format("%s %s %s %s\n", parameters.getProcessType(), parameters.getRunningMode(), evt.getOldState(), evt.getNewState()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void runningStateChanged(RunningStateChangeEvent evt) {
+        try {
+            fileWriter.write(String.format("%s %s %s %s\n", parameters.getProcessType(), parameters.getRunningMode(), evt.getOldState(), evt.getNewState()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+----
+
+To compile it you need to depend on the
+_org.wildfly.core:wildfly-core-management-client_ maven module. Now
+let's add the module to the wildfly modules :
+
+....
+module add --name=org.simple.lifecycle.events.listener --dependencies=org.wildfly.extension.core-management-client --resources=/home/ehsavoie/dev/demo/simple-listener/target/simple-process-state-listener.jar
+....
+
+Now we can register or listener :
+
+....
+/subsystem=core-management/process-state-listener=simple-listener:add(class=org.simple.lifecycle.events.listener.SimpleListener, module=org.simple.lifecycle.events.listener, properties={file=/home/wildfly/tmp/events.txt})
+....
+
+[[configuration-changes]]
+== Configuration changes
+
+You can use the core management subsystem to enable and configure an
+*in-memory* history of the last configuration changes. +
+For example to track the last 5 configuration changes let's active this
+:
+
+....
+/subsystem=core-management/service=configuration-changes:add(max-history=5)
+....
+
+Now we can list the last configuration changes :
+
+[source,options="nowrap"]
+----
+/subsystem=core-management/service=configuration-changes:list-changes()
+{
+    "outcome" => "success",
+    "result" => [{
+        "operation-date" => "2016-12-05T11:05:12.867Z",
+        "access-mechanism" => "NATIVE",
+        "remote-address" => "/127.0.0.1",
+        "outcome" => "success",
+        "operations" => [{
+            "address" => [
+                ("subsystem" => "core-management"),
+                ("service" => "configuration-changes")
+            ],
+            "operation" => "add",
+            "max-history" => 5,
+            "operation-headers" => {
+                "caller-type" => "user",
+                "access-mechanism" => "NATIVE"
+            }
+        }]
+    }]
+}
+----
+
+[[unstable-api-annotation]]
+== [Preview Feature] Reporting of API elements annotated with annotations indicating unstable API
+
+Note: This feature only exists at the https://docs.wildfly.org/32/Admin_Guide.html#Feature_stability_levels[`preview` stability level] or lower.
+
+Some libraries use annotations on classes/interfaces/members to indicate that the API is considered to be unstable, and likely to change or go away in a future release. For example Hibernate uses the `org.hibernate.Incubating` annotation to mark such API elements.
+
+WildFly can scan for the use of such API when your applications are deployed into WildFly, but it needs to be enabled via addition of the `/subsystem=core-management/service=unstable-api-annotations` resource. Once enabled, you can choose whether the use of these API elements should result in a warning in the logs, or a failed deployment. The next two child sections show examples of how to configure the scanner.
+
+=== Log a warning
+To enable the scanner and log a warning if annotated API elements are used in your code, execute the following CLI command:
+
+[source,options="nowrap"]
+----
+/subsystem=core-management/service=unstable-api-annotations:add(level=log)
+----
+
+The warning message in the log will contain information about which API elements were called, from where, and which annotations they contain that indicate unstable API.
+
+=== Throw an error
+To enable the scanner and throw an error if annotated API elements are used in your code, execute the following CLI command:
+
+[source,options="nowrap"]
+----
+/subsystem=core-management/service=unstable-api-annotations:add(level=error)
+----
+
+If you use annotated API elements in your code, the deployment will fail, and the error message will contain  information about which API elements were called, from where, and which annotations they contain that indicate unstable API.
+
+
+
+
+

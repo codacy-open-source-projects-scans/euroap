@@ -1,0 +1,386 @@
+/*
+ * Copyright The WildFly Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.jboss.as.ejb3.component;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+
+import jakarta.ejb.TransactionAttributeType;
+import jakarta.ejb.TransactionManagementType;
+import jakarta.transaction.TransactionSynchronizationRegistry;
+import jakarta.transaction.UserTransaction;
+
+import org.jboss.as.ee.component.BasicComponentCreateService;
+import org.jboss.as.ee.component.ComponentConfiguration;
+import org.jboss.as.ee.component.ViewConfiguration;
+import org.jboss.as.ee.component.ViewDescription;
+import org.jboss.as.ejb3.component.interceptors.ShutDownInterceptorFactory;
+import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
+import org.jboss.as.ejb3.deployment.ApplicationExceptions;
+import org.jboss.as.ejb3.security.EJBSecurityMetaData;
+import org.jboss.as.ejb3.suspend.EJBSuspendHandlerService;
+import org.jboss.as.ejb3.timerservice.spi.ManagedTimerServiceFactory;
+import org.jboss.invocation.InterceptorFactory;
+import org.jboss.invocation.Interceptors;
+import org.jboss.invocation.proxy.MethodIdentifier;
+import org.jboss.metadata.ejb.spec.MethodInterfaceType;
+import org.jboss.msc.inject.Injector;
+import org.jboss.msc.service.ServiceName;
+import org.jboss.msc.value.InjectedValue;
+import org.wildfly.extension.requestcontroller.ControlPoint;
+import org.wildfly.security.auth.server.SecurityDomain;
+import org.wildfly.transaction.client.LocalUserTransaction;
+
+/**
+ * @author Jaikiran Pai
+ * @author <a href="mailto:ropalka@redhat.com">Richard Opalka</a>
+ */
+public class EJBComponentCreateService extends BasicComponentCreateService {
+
+    private final Map<MethodTransactionAttributeKey, TransactionAttributeType> txAttrs;
+    private final Map<MethodTransactionAttributeKey, Boolean> txExplicitAttrs;
+
+    private final Map<MethodTransactionAttributeKey, Integer> txTimeouts;
+
+    private final TransactionManagementType transactionManagementType;
+
+    private final ApplicationExceptions applicationExceptions;
+
+    private final Map<String, ServiceName> viewServices;
+
+    private final EJBSecurityMetaData securityMetaData;
+
+    private final Map<Method, InterceptorFactory> timeoutInterceptors;
+
+    private final Method timeoutMethod;
+
+    private final ServiceName ejbLocalHome;
+    private final ServiceName ejbHome;
+    private final ServiceName ejbObject;
+    private final ServiceName ejbLocalObject;
+
+
+    private final String applicationName;
+    private final String earApplicationName;
+    private final String moduleName;
+    private final String distinctName;
+
+    private final InjectedValue<TransactionSynchronizationRegistry> transactionSynchronizationRegistryValue = new InjectedValue<TransactionSynchronizationRegistry>();
+    private final InjectedValue<ControlPoint> controlPoint = new InjectedValue<>();
+    private final InjectedValue<AtomicBoolean> exceptionLoggingEnabled = new InjectedValue<>();
+    private final InjectedValue<SecurityDomain> securityDomain = new InjectedValue<>();
+    private final InjectedValue<Function> identityOutflowFunction = new InjectedValue<>();
+    private final InjectedValue<EJBSuspendHandlerService> ejbSuspendHandler = new InjectedValue<>();
+    private final InjectedValue<ManagedTimerServiceFactory> timerServiceFactory = new InjectedValue<>();
+
+    private final ShutDownInterceptorFactory shutDownInterceptorFactory;
+
+    private final boolean jaccRequired;
+    private final boolean legacyCompliantPrincipalPropagation;
+    private final boolean securityRequired;
+
+    private final EJBComponentDescription componentDescription;
+
+    /**
+     * Construct a new instance.
+     *
+     * @param componentConfiguration the component configuration
+     */
+    public EJBComponentCreateService(final ComponentConfiguration componentConfiguration, final ApplicationExceptions applicationExceptions) {
+        super(componentConfiguration);
+
+        this.applicationExceptions = applicationExceptions;
+        final EJBComponentDescription ejbComponentDescription = (EJBComponentDescription) componentConfiguration.getComponentDescription();
+        this.transactionManagementType = ejbComponentDescription.getTransactionManagementType();
+
+        // CMTTx
+        if (transactionManagementType.equals(TransactionManagementType.CONTAINER)) {
+            this.txAttrs = new HashMap<MethodTransactionAttributeKey, TransactionAttributeType>();
+            this.txTimeouts = new HashMap<MethodTransactionAttributeKey, Integer>();
+            this.txExplicitAttrs = new HashMap<>();
+        } else {
+            this.txAttrs = null;
+            this.txTimeouts = null;
+            this.txExplicitAttrs = null;
+        }
+        // Setup the security metadata for the bean
+        this.securityMetaData = new EJBSecurityMetaData(componentConfiguration);
+
+        if (ejbComponentDescription.isTimerServiceRequired()) {
+            Map<Method, InterceptorFactory> timeoutInterceptors = new IdentityHashMap<Method, InterceptorFactory>();
+            for (Method method : componentConfiguration.getDefinedComponentMethods()) {
+                if ((ejbComponentDescription.getTimeoutMethod() != null && ejbComponentDescription.getTimeoutMethod().equals(method)) ||
+                        ejbComponentDescription.getScheduleMethods().containsKey(method)) {
+                    final InterceptorFactory interceptorFactory = Interceptors.getChainedInterceptorFactory(componentConfiguration.getAroundTimeoutInterceptors(method));
+                    timeoutInterceptors.put(method, interceptorFactory);
+                }
+            }
+            this.timeoutInterceptors = timeoutInterceptors;
+        } else {
+            timeoutInterceptors = Collections.emptyMap();
+        }
+
+        List<ViewConfiguration> views = componentConfiguration.getViews();
+        if (views != null) {
+            for (ViewConfiguration view : views) {
+                //TODO: Move this into a configurator
+                final EJBViewConfiguration ejbView = (EJBViewConfiguration) view;
+                final MethodInterfaceType viewType = ejbView.getMethodIntf();
+                for (Method method : view.getProxyFactory().getCachedMethods()) {
+                    // TODO: proxy factory exposes non-public methods, is this a bug in the no-interface view?
+                    if (!Modifier.isPublic(method.getModifiers()))
+                        continue;
+                    final Method componentMethod = getComponentMethod(componentConfiguration, method.getName(), method.getParameterTypes());
+                    if (componentMethod != null) {
+                        this.processTxAttr(ejbComponentDescription, viewType, componentMethod);
+                    } else {
+                        this.processTxAttr(ejbComponentDescription, viewType, method);
+                    }
+                }
+            }
+        }
+
+        this.timeoutMethod = ejbComponentDescription.getTimeoutMethod();
+
+        // FIXME: TODO: a temporary measure until EJBTHREE-2120 is fully resolved, let's create tx attribute map
+        // for the component methods. Once the issue is resolved, we should get rid of this block and just rely on setting
+        // up the tx attributes only for the views exposed by this component
+        // AS7-899: We only want to process public methods of the proper sub-class. (getDefinedComponentMethods returns all in random order)
+        // TODO: use ClassReflectionIndex (low prio, because we store the result without class name) (which is a bug: AS7-905)
+        Set<Method> lifeCycle = new HashSet<>(componentConfiguration.getLifecycleMethods());
+        for (Method method : componentConfiguration.getComponentClass().getMethods()) {
+            this.processTxAttr(ejbComponentDescription, MethodInterfaceType.Bean, method);
+            lifeCycle.remove(method);
+        }
+        //now handle non-public lifecycle methods declared on the bean class itself
+        //see WFLY-4127
+        for(Method method : lifeCycle)  {
+            if(method.getDeclaringClass().equals(componentConfiguration.getComponentClass())) {
+                this.processTxAttr(ejbComponentDescription, MethodInterfaceType.Bean, method);
+            }
+        }
+
+        final HashMap<String, ServiceName> viewServices = new HashMap<String, ServiceName>();
+        for (ViewDescription view : componentConfiguration.getComponentDescription().getViews()) {
+            viewServices.put(view.getViewClassName(), view.getServiceName());
+        }
+        this.viewServices = viewServices;
+        final EjbHomeViewDescription localHome = ejbComponentDescription.getEjbLocalHomeView();
+        this.ejbLocalHome = localHome == null ? null : ejbComponentDescription.getEjbLocalHomeView().getServiceName();
+        final EjbHomeViewDescription home = ejbComponentDescription.getEjbHomeView();
+        this.ejbHome = home == null ? null : home.getServiceName();
+        final EJBViewDescription ejbObject = ejbComponentDescription.getEjbRemoteView();
+        this.ejbObject = ejbObject == null ? null : ejbObject.getServiceName();
+        final EJBViewDescription ejbLocalObject = ejbComponentDescription.getEjbLocalView();
+        this.ejbLocalObject = ejbLocalObject == null ? null : ejbLocalObject.getServiceName();
+        this.applicationName = componentConfiguration.getApplicationName();
+        this.earApplicationName = componentConfiguration.getComponentDescription().getModuleDescription().getEarApplicationName();
+        this.moduleName = componentConfiguration.getModuleName();
+        this.distinctName = componentConfiguration.getComponentDescription().getModuleDescription().getDistinctName();
+        this.shutDownInterceptorFactory = ejbComponentDescription.getShutDownInterceptorFactory();
+        this.securityRequired = ejbComponentDescription.isSecurityRequired();
+        this.jaccRequired = ejbComponentDescription.requiresJacc();
+        this.legacyCompliantPrincipalPropagation = ejbComponentDescription.requiresLegacyCompliantPrincipalPropagation();
+        this.componentDescription = ejbComponentDescription;
+    }
+
+    @Override
+    protected boolean requiresInterceptors(final Method method, final ComponentConfiguration componentConfiguration) {
+        if (super.requiresInterceptors(method, componentConfiguration)) {
+            return true;
+        }
+        final EJBComponentDescription ejbComponentDescription = (EJBComponentDescription) componentConfiguration.getComponentDescription();
+        if ((ejbComponentDescription.getTimeoutMethod() != null && ejbComponentDescription.getTimeoutMethod().equals(method)) ||
+                ejbComponentDescription.getScheduleMethods().containsKey(method)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static Method getComponentMethod(final ComponentConfiguration componentConfiguration, final String name, final Class<?>[] parameterTypes) {
+        try {
+            return componentConfiguration.getComponentClass().getMethod(name, parameterTypes);
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
+    }
+
+    Map<MethodTransactionAttributeKey, TransactionAttributeType> getTxAttrs() {
+        return txAttrs;
+    }
+
+    Map<MethodTransactionAttributeKey, Boolean> getExplicitTxAttrs() {
+        return txExplicitAttrs;
+    }
+
+    Map<MethodTransactionAttributeKey, Integer> getTxTimeouts() {
+        return txTimeouts;
+    }
+
+    TransactionManagementType getTransactionManagementType() {
+        return transactionManagementType;
+    }
+
+    ApplicationExceptions getApplicationExceptions() {
+        return this.applicationExceptions;
+    }
+
+    EJBComponentDescription getComponentDescription() {
+        return componentDescription;
+    }
+
+    protected void processTxAttr(final EJBComponentDescription ejbComponentDescription, final MethodInterfaceType methodIntf, final Method method) {
+        if (this.getTransactionManagementType().equals(TransactionManagementType.BEAN)) {
+            // it's a BMT bean
+            return;
+        }
+
+        MethodInterfaceType defaultMethodIntf = (ejbComponentDescription instanceof MessageDrivenComponentDescription) ? MethodInterfaceType.MessageEndpoint : MethodInterfaceType.Bean;
+        TransactionAttributeType txAttr = ejbComponentDescription.getTransactionAttributes().getAttribute(methodIntf, method, defaultMethodIntf);
+        MethodTransactionAttributeKey key = new MethodTransactionAttributeKey(methodIntf, MethodIdentifier.getIdentifierForMethod(method));
+        if(txAttr != null) {
+            txAttrs.put(key, txAttr);
+            txExplicitAttrs.put(key, ejbComponentDescription.getTransactionAttributes().isMethodLevel(methodIntf, method, defaultMethodIntf));
+        }
+        Integer txTimeout = ejbComponentDescription.getTransactionTimeouts().getAttribute(methodIntf, method, defaultMethodIntf);
+        if (txTimeout != null) {
+            txTimeouts.put(key, txTimeout);
+        }
+    }
+
+    public Map<String, ServiceName> getViewServices() {
+        return viewServices;
+    }
+
+    public EJBSecurityMetaData getSecurityMetaData() {
+        return this.securityMetaData;
+    }
+
+    public Map<Method, InterceptorFactory> getTimeoutInterceptors() {
+        return timeoutInterceptors;
+    }
+
+    public Method getTimeoutMethod() {
+        return timeoutMethod;
+    }
+
+    public ServiceName getEjbHome() {
+        return ejbHome;
+    }
+
+    public ServiceName getEjbLocalHome() {
+        return ejbLocalHome;
+    }
+
+    public ServiceName getEjbObject() {
+        return ejbObject;
+    }
+
+    public ServiceName getEjbLocalObject() {
+        return ejbLocalObject;
+    }
+
+    public String getApplicationName() {
+        return applicationName;
+    }
+
+    public String getEarApplicationName() {
+        return this.earApplicationName;
+    }
+
+    public String getDistinctName() {
+        return distinctName;
+    }
+
+    public String getModuleName() {
+        return moduleName;
+    }
+
+    UserTransaction getUserTransaction() {
+        return LocalUserTransaction.getInstance();
+    }
+
+    Injector<TransactionSynchronizationRegistry> getTransactionSynchronizationRegistryInjector() {
+        return transactionSynchronizationRegistryValue;
+    }
+
+    TransactionSynchronizationRegistry getTransactionSynchronizationRegistry() {
+        return transactionSynchronizationRegistryValue.getValue();
+    }
+
+    public Injector<EJBSuspendHandlerService> getEJBSuspendHandlerInjector() {
+        return this.ejbSuspendHandler;
+    }
+
+    EJBSuspendHandlerService getEJBSuspendHandler() {
+        return this.ejbSuspendHandler.getValue();
+    }
+
+    public ControlPoint getControlPoint() {
+        return this.controlPoint.getOptionalValue();
+    }
+
+    public Injector<ControlPoint> getControlPointInjector() {
+        return this.controlPoint;
+    }
+
+    InjectedValue<AtomicBoolean> getExceptionLoggingEnabledInjector() {
+        return exceptionLoggingEnabled;
+    }
+
+    public AtomicBoolean getExceptionLoggingEnabled() {
+        return exceptionLoggingEnabled.getValue();
+    }
+
+    Injector<SecurityDomain> getSecurityDomainInjector() {
+        return securityDomain;
+    }
+
+    public SecurityDomain getSecurityDomain() {
+        return securityDomain.getOptionalValue();
+    }
+
+    public boolean isEnableJacc() {
+        return jaccRequired;
+    }
+
+    public boolean isLegacyCompliantPrincipalPropagation() {
+        return legacyCompliantPrincipalPropagation;
+    }
+
+    Injector<Function> getIdentityOutflowFunctionInjector() {
+        return identityOutflowFunction;
+    }
+
+    public Function getIdentityOutflowFunction() {
+        return identityOutflowFunction.getOptionalValue();
+    }
+
+    public ShutDownInterceptorFactory getShutDownInterceptorFactory() {
+        return shutDownInterceptorFactory;
+    }
+
+    public boolean isSecurityRequired() {
+        return securityRequired;
+    }
+
+    public ManagedTimerServiceFactory getTimerServiceFactory() {
+        return this.timerServiceFactory.getValue();
+    }
+
+    public Injector<ManagedTimerServiceFactory> getTimerServiceFactoryInjector() {
+        return this.timerServiceFactory;
+    }
+}
