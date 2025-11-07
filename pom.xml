@@ -298,7 +298,7 @@
         <version.org.wildfly.licenses.plugin>2.4.2.Final</version.org.wildfly.licenses.plugin>
         <version.org.wildfly.plugin>5.1.0.Final</version.org.wildfly.plugin>
         <version.org.wildfly.unstable.annotation.api>1.0.2.Final</version.org.wildfly.unstable.annotation.api>
-        <version.org.wildfly.wildfly-channel-plugin>1.0.29</version.org.wildfly.wildfly-channel-plugin>
+        <version.org.wildfly.wildfly-channel-plugin>1.0.30</version.org.wildfly.wildfly-channel-plugin>
         <version.org.wildfly.wildfly-maven-gpg-plugin>3.2.8.SP1</version.org.wildfly.wildfly-maven-gpg-plugin>
         <version.verifier.plugin>1.1</version.verifier.plugin>
         <version.xml.plugin>1.0.2</version.xml.plugin>
@@ -403,7 +403,7 @@
         <version.io.github.resilience4j>2.2.0</version.io.github.resilience4j>
         <version.io.grpc>1.70.0</version.io.grpc>
         <version.io.micrometer>1.15.0</version.io.micrometer>
-        <version.io.netty>4.1.127.Final</version.io.netty>
+        <version.io.netty>4.1.128.Final</version.io.netty>
         <version.io.opentelemetry.instrumentation>2.14.0</version.io.opentelemetry.instrumentation>
         <version.io.opentelemetry.opentelemetry-semconv>1.32.0</version.io.opentelemetry.opentelemetry-semconv>
         <version.io.opentelemetry.opentelemetry>1.48.0</version.io.opentelemetry.opentelemetry>
@@ -424,7 +424,7 @@
         <version.io.smallrye.smallrye-stork>2.7.6</version.io.smallrye.smallrye-stork>
         <version.io.smallrye.smallrye-reactive-messaging>4.30.0</version.io.smallrye.smallrye-reactive-messaging>
         <version.io.undertow.jastow>2.2.8.Final</version.io.undertow.jastow>
-        <version.io.vertx.vertx>4.5.21</version.io.vertx.vertx>
+        <version.io.vertx.vertx>4.5.22</version.io.vertx.vertx>
         <version.io.vertx.vertx-kafka-client>4.4.9</version.io.vertx.vertx-kafka-client>
         <version.jakarta.activation.jakarta.activation-api>2.1.4</version.jakarta.activation.jakarta.activation-api>
         <version.jakarta.annotation.jakarta-annotation-api>2.1.1</version.jakarta.annotation.jakarta-annotation-api>
@@ -455,7 +455,7 @@
         <version.joda-time>2.12.7</version.joda-time>
         <version.net.jcip>1.0</version.net.jcip>
         <version.net.shibboleth.utilities.java-support>8.0.0</version.net.shibboleth.utilities.java-support>
-        <version.org.apache.activemq.artemis>2.42.0</version.org.apache.activemq.artemis>
+        <version.org.apache.activemq.artemis>2.43.0</version.org.apache.activemq.artemis>
         <version.org.apache.activemq.artemis.native>2.0.0</version.org.apache.activemq.artemis.native>
         <version.org.apache.avro>1.12.0</version.org.apache.avro>
         <version.org.apache.cxf>4.0.9-jbossorg-1</version.org.apache.cxf>
@@ -495,7 +495,7 @@
         <version.org.elasticsearch.client.rest-client>8.15.4</version.org.elasticsearch.client.rest-client>
         <version.org.glassfish.expressly>5.0.0</version.org.glassfish.expressly>
         <version.org.glassfish.jakarta.enterprise.concurrent>3.0.2</version.org.glassfish.jakarta.enterprise.concurrent>
-        <version.org.glassfish.jaxb>4.0.5</version.org.glassfish.jaxb>
+        <version.org.glassfish.jaxb>4.0.6</version.org.glassfish.jaxb>
         <version.org.glassfish.jaxb.jaxb-xjc>${version.org.glassfish.jaxb}</version.org.glassfish.jaxb.jaxb-xjc>
         <version.org.glassfish.soteria>3.0.3</version.org.glassfish.soteria>
         <version.org.glassfish.web.jakarta.servlet.jsp.jstl>3.0.1-jbossorg-1</version.org.glassfish.web.jakarta.servlet.jsp.jstl>
@@ -525,7 +525,7 @@
         <version.org.jboss.resteasy.extensions>2.0.1.Final</version.org.jboss.resteasy.extensions>
         <version.org.jboss.resteasy.microprofile>3.0.1.Final</version.org.jboss.resteasy.microprofile>
         <version.org.jboss.resteasy.spring>3.2.0.Final</version.org.jboss.resteasy.spring>
-        <version.org.jboss.spec.jakarta.el.jboss-el-api_5.0_spec>4.0.1.Final</version.org.jboss.spec.jakarta.el.jboss-el-api_5.0_spec>
+        <version.org.jboss.spec.jakarta.el.jboss-el-api_5.0_spec>4.0.2.Final</version.org.jboss.spec.jakarta.el.jboss-el-api_5.0_spec>
         <version.org.jboss.spec.jakarta.xml.soap.saaj-api_3.0_spec>1.0.0.Final</version.org.jboss.spec.jakarta.xml.soap.saaj-api_3.0_spec>
         <version.org.jboss.spec.jakarta.xml.ws.api_4.0_spec>1.0.0.Final</version.org.jboss.spec.jakarta.xml.ws.api_4.0_spec>
         <version.org.jboss.universe.community>1.2.0.Final</version.org.jboss.universe.community>
@@ -541,7 +541,7 @@
         <version.org.jboss.xnio.netty.netty-xnio-transport>0.1.10.Final</version.org.jboss.xnio.netty.netty-xnio-transport>
         <version.org.jctools.jctools-core>4.0.5</version.org.jctools.jctools-core>
         <version.org.jgroups>5.4.11.Final</version.org.jgroups>
-        <version.org.jgroups.aws>3.0.1.Final</version.org.jgroups.aws>
+        <version.org.jgroups.aws>3.1.0.Final</version.org.jgroups.aws>
         <version.org.jgroups.azure>2.0.2.Final</version.org.jgroups.azure>
         <version.org.jgroups.kubernetes>2.0.2.Final</version.org.jgroups.kubernetes>
         <version.org.jipijapa>1.0.1.Final</version.org.jipijapa>
@@ -553,17 +553,17 @@
         <version.org.ow2.asm>9.7.1</version.org.ow2.asm>
         <version.org.reactivestreams>1.0.4</version.org.reactivestreams>
         <version.org.wildfly.clustering>8.0.2.Final</version.org.wildfly.clustering>
-        <version.org.wildfly.core>30.0.0.Final</version.org.wildfly.core>
+        <version.org.wildfly.core>31.0.0.Beta1</version.org.wildfly.core>
         <version.org.wildfly.http-client>2.1.3.Final</version.org.wildfly.http-client>
         <version.org.wildfly.launcher>1.0.2.Final</version.org.wildfly.launcher>
-        <version.org.wildfly.mvc.krazo>2.0.0.Final</version.org.wildfly.mvc.krazo>
+        <version.org.wildfly.mvc.krazo>2.0.1.Final</version.org.wildfly.mvc.krazo>
         <version.org.wildfly.vertx>1.0.2.Final</version.org.wildfly.vertx>
         <version.org.wildfly.naming-client>2.0.1.Final</version.org.wildfly.naming-client>
         <version.org.wildfly.security.elytron-tests-common>2.4.2.Final</version.org.wildfly.security.elytron-tests-common>
         <version.org.wildfly.security.elytron-mp>2.0.0.Final</version.org.wildfly.security.elytron-mp>
         <version.org.wildfly.transaction.client>3.0.5.Final</version.org.wildfly.transaction.client>
         <preview.version.org.wildfly.wildfly-ee-9-deployment-transformer>2.0.0.Final</preview.version.org.wildfly.wildfly-ee-9-deployment-transformer>
-        <version.software.amazon.awssdk>2.30.32</version.software.amazon.awssdk>
+        <version.software.amazon.awssdk>2.36.3</version.software.amazon.awssdk>
         <version.software.amazon.eventstream>1.0.1</version.software.amazon.eventstream>
         <version.org.xerial.snappy.snappy-java>1.1.10.5</version.org.xerial.snappy.snappy-java>
         <version.sun.jaxb>${version.org.glassfish.jaxb}</version.sun.jaxb>
@@ -1557,6 +1557,7 @@
                 <module>boms/preview-test</module>
                 <module>boms/preview-expansion</module>
                 <module>boms/preview-test-expansion</module>
+                <module>concurrency/impl-31</module>
                 <module>preview</module>
             </modules>
         </profile>

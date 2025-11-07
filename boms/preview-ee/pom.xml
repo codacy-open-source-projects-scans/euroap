@@ -32,10 +32,11 @@
 
     <properties>
         <version.com.fasterxml.classmate>1.7.0</version.com.fasterxml.classmate>
+        <version.io.undertow>2.4.0.Alpha1</version.io.undertow>
+        <version.io.undertow.ee>2.0.0.Alpha1</version.io.undertow.ee>
         <version.jakarta.annotation.jakarta-annotation-api>3.0.0</version.jakarta.annotation.jakarta-annotation-api>
         <version.jakarta.authentication.jakarta-authentication-api>3.1.0</version.jakarta.authentication.jakarta-authentication-api>
         <version.jakarta.authorization.jakarta-authorization-api>3.0.0</version.jakarta.authorization.jakarta-authorization-api>
-        <version.jakarta.el>6.0.1</version.jakarta.el>
         <version.jakarta.enterprise.concurrent.jakarta-enterprise.concurrent-api>3.1.1</version.jakarta.enterprise.concurrent.jakarta-enterprise.concurrent-api>
         <version.jakarta.enterprise>4.1.0</version.jakarta.enterprise>
         <version.jakarta.faces.jakarta-faces-api>4.1.2</version.jakarta.faces.jakarta-faces-api>
@@ -53,10 +54,12 @@
         <version.org.apache.lucene>9.12.2</version.org.apache.lucene>
         <version.org.elasticsearch.client.rest-client>9.1.3</version.org.elasticsearch.client.rest-client>
         <version.org.bytebuddy>1.17.6</version.org.bytebuddy>
+        <version.org.glassfish.concurro>3.1.0</version.org.glassfish.concurro>
         <version.org.glassfish.expressly>6.0.0</version.org.glassfish.expressly>
         <version.org.glassfish.jakarta.faces>4.1.3</version.org.glassfish.jakarta.faces>
         <version.org.jboss.metadata>17.0.0.Beta1</version.org.jboss.metadata>
         <version.org.jboss.resteasy>7.0.0.Final</version.org.jboss.resteasy>
+        <version.org.jboss.spec.jakarta.el.jakarta.el-api>6.0.1.Final</version.org.jboss.spec.jakarta.el.jakarta.el-api>
         <version.org.jboss.weld.weld>6.0.3.Final</version.org.jboss.weld.weld>
         <version.org.jboss.weld.weld-api>6.0.Final</version.org.jboss.weld.weld-api>
         <version.org.hibernate>7.1.2.Final</version.org.hibernate>
@@ -93,6 +96,41 @@
                 </exclusions>
             </dependency>
 
+            <!-- Bom-specific dependencies. Keep sorted -->
+            <dependency>
+                <groupId>io.undertow</groupId>
+                <artifactId>undertow-core</artifactId>
+                <version>${version.io.undertow}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.undertow.ee</groupId>
+                <artifactId>undertow-servlet</artifactId>
+                <version>${version.io.undertow.ee}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.undertow.ee</groupId>
+                <artifactId>undertow-websockets</artifactId>
+                <version>${version.io.undertow.ee}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
             <dependency>
                 <groupId>jakarta.annotation</groupId>
                 <artifactId>jakarta.annotation-api</artifactId>
@@ -119,17 +157,6 @@
                 <groupId>jakarta.authorization</groupId>
                 <artifactId>jakarta.authorization-api</artifactId>
                 <version>${version.jakarta.authorization.jakarta-authorization-api}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>*</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>jakarta.el</groupId>
-                <artifactId>jakarta.el-api</artifactId>
-                <version>${version.jakarta.el}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
@@ -416,6 +443,18 @@
                 <groupId>org.glassfish</groupId>
                 <artifactId>jakarta.faces</artifactId>
                 <version>${version.org.glassfish.jakarta.faces}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.glassfish.concurro</groupId>
+                <artifactId>concurro</artifactId>
+                <version>${version.org.glassfish.concurro}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
@@ -789,6 +828,18 @@
             </dependency>
 
             <dependency>
+                <groupId>org.jboss.spec.jakarta.el</groupId>
+                <artifactId>jakarta.el-api</artifactId>
+                <version>${version.org.jboss.spec.jakarta.el.jakarta.el-api}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
                 <groupId>org.jboss.weld</groupId>
                 <artifactId>weld-api</artifactId>
                 <version>${version.org.jboss.weld.weld-api}</version>
@@ -915,6 +966,18 @@
                 <groupId>org.wildfly.deployment</groupId>
                 <artifactId>transformer</artifactId>
                 <version>${preview.version.org.wildfly.wildfly-ee-9-deployment-transformer}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>wildfly-concurrency-impl-31</artifactId>
+                <version>${ee.maven.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
