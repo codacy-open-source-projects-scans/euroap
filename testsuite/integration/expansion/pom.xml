@@ -220,7 +220,7 @@
             <scope>test</scope>
         </dependency>
         <!--
-            smallrye-reactive-messaging-kafka-test-companion doesn't pull in the kafka server dependencies
+            smallrye-reactive-messaging-kafka-test-companion doesn't pull in the kafka server dependencies,
             so we need to add them here
         -->
         <dependency>
@@ -284,7 +284,7 @@
         </dependency>
         <dependency>
             <!-- Needed if people use compression.type=lz4 in their Kafka config -->
-            <groupId>org.lz4</groupId>
+            <groupId>at.yawk.lz4</groupId>
             <artifactId>lz4-java</artifactId>
             <scope>test</scope>
         </dependency>
