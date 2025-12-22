@@ -16,7 +16,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>39.0.0.Beta1-SNAPSHOT</version>
+        <version>39.0.0.Final-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -152,6 +152,74 @@
                                     <altStagingDirectory>${project.build.directory}/nexus-staging</altStagingDirectory>
                                     <repository>${nexus.repository.staging}</repository>
                                     <tag>${nexus.staging.tag}</tag>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!--
+            Disable the parent pom's use of maven-gpg-plugin for these modules
+            as it can't handle the fact we produce artifacts under multiple
+            grouopIds; we need to use wildfly-maven-gpg-plugin to deal with signing.
+        -->
+        <profile>
+            <id>maven-central-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>gpg-sign</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.wildfly</groupId>
+                        <artifactId>wildfly-maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>gpg-sign</id>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!--
+                        The central-publishing-maven-plugin can't deal with this project's generated artifacts
+                        because it writes maven-metadata-central-staging.xml files for those components that
+                        Maven Central rejects.
+                        So we hack this by redeclaring the central-publishing-maven-plugin
+                        and then *after it* add a 'deploy' phase maven-clean-plugin execution to remove those files.-->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>post-stage-clean</id>
+                                <phase>deploy</phase>
+                                <goals>
+                                    <goal>clean</goal>
+                                </goals>
+                                <configuration>
+                                    <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                                    <filesets>
+                                        <fileset>
+                                            <directory>${maven.multiModuleProjectDirectory}/target/central-staging</directory>
+                                            <includes>
+                                                <include>**/maven-metadata-*.xml</include>
+                                            </includes>
+                                        </fileset>
+                                    </filesets>
                                 </configuration>
                             </execution>
                         </executions>
