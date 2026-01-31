@@ -430,7 +430,7 @@
         <version.io.smallrye.smallrye-stork>2.7.7</version.io.smallrye.smallrye-stork>
         <version.io.smallrye.smallrye-reactive-messaging>4.30.0</version.io.smallrye.smallrye-reactive-messaging>
         <version.io.undertow.jastow>2.2.8.Final</version.io.undertow.jastow>
-        <version.io.vertx.vertx>4.5.23</version.io.vertx.vertx>
+        <version.io.vertx.vertx>4.5.24</version.io.vertx.vertx>
         <version.io.vertx.vertx-kafka-client>4.4.9</version.io.vertx.vertx-kafka-client>
         <version.jakarta.activation.jakarta.activation-api>2.1.4</version.jakarta.activation.jakarta.activation-api>
         <version.jakarta.annotation.jakarta-annotation-api>2.1.1</version.jakarta.annotation.jakarta-annotation-api>
@@ -561,7 +561,7 @@
         <!--
             Maintain separation between these two frequently updated artifacts to avoid merge conflicts.
         -->
-        <version.org.wildfly.core>32.0.0.Beta1</version.org.wildfly.core>
+        <version.org.wildfly.core>32.0.0.Beta2</version.org.wildfly.core>
         <version.org.wildfly.http-client>2.1.3.Final</version.org.wildfly.http-client>
         <version.org.wildfly.launcher>1.0.2.Final</version.org.wildfly.launcher>
         <version.org.wildfly.mvc.krazo>2.0.1.Final</version.org.wildfly.mvc.krazo>
