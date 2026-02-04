@@ -333,7 +333,7 @@
         <version.jaxen>1.1.6</version.jaxen>
         <version.jsoup>1.15.4</version.jsoup>
         <version.junit>4.13.2</version.junit>
-        <version.org.apache.ds>2.0.0.AM26</version.org.apache.ds>
+        <version.org.apache.ds>2.0.0.AM27</version.org.apache.ds>
         <version.org.apache.groovy>4.0.27</version.org.apache.groovy>
         <version.org.assertj>3.27.7</version.org.assertj>
         <version.org.awaitility.awaitility>4.0.3</version.org.awaitility.awaitility>
