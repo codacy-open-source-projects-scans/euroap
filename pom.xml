@@ -299,7 +299,7 @@
         <version.asciidoctor.plugin>2.2.6</version.asciidoctor.plugin>
         <version.central.publishing.maven.plugin>0.9.0</version.central.publishing.maven.plugin>
         <version.org.jacoco>0.8.14</version.org.jacoco>
-        <version.org.jboss.galleon>7.0.2.Final</version.org.jboss.galleon>
+        <version.org.jboss.galleon>7.0.3.Final</version.org.jboss.galleon>
         <version.org.owasp.dependency-check>12.2.0</version.org.owasp.dependency-check>
         <version.org.wildfly.bom-builder-plugin>2.0.10.Final</version.org.wildfly.bom-builder-plugin>
         <version.org.wildfly.checkstyle-config>1.0.8.Final</version.org.wildfly.checkstyle-config>
@@ -379,7 +379,7 @@
             Properties for dependencies that solely relate to tests go in the test code section above.
          -->
         <version.antlr>4.13.0</version.antlr>
-        <version.at.yawk.lz4.lz4-java>1.10.3</version.at.yawk.lz4.lz4-java>
+        <version.at.yawk.lz4.lz4-java>1.10.4</version.at.yawk.lz4.lz4-java>
         <version.com.carrotsearch.hppc>0.10.0</version.com.carrotsearch.hppc>
         <version.com.fasterxml.classmate>1.5.1</version.com.fasterxml.classmate>
         <version.com.fasterxml.jackson>2.20.2</version.com.fasterxml.jackson>
@@ -422,7 +422,7 @@
         <version.io.reactivex.rxjava3>3.1.12</version.io.reactivex.rxjava3>
         <version.io.smallrye.open-api>4.2.4</version.io.smallrye.open-api>
         <version.io.smallrye.reactive-utils>2.6.0</version.io.smallrye.reactive-utils>
-        <version.io.smallrye.smallrye-config>3.15.0</version.io.smallrye.smallrye-config>
+        <version.io.smallrye.smallrye-config>3.15.1</version.io.smallrye.smallrye-config>
         <version.io.smallrye.smallrye-fault-tolerance>6.10.0</version.io.smallrye.smallrye-fault-tolerance>
         <version.io.smallrye.smallrye-health>4.3.0</version.io.smallrye.smallrye-health>
         <version.io.smallrye.smallrye-jwt>4.3.1</version.io.smallrye.smallrye-jwt>
@@ -467,7 +467,7 @@
         <version.org.apache.activemq.artemis>2.44.0</version.org.apache.activemq.artemis>
         <version.org.apache.activemq.artemis.native>2.0.0</version.org.apache.activemq.artemis.native>
         <version.org.apache.avro>1.12.1</version.org.apache.avro>
-        <version.org.apache.cxf>4.0.10</version.org.apache.cxf>
+        <version.org.apache.cxf>4.0.11</version.org.apache.cxf>
         <version.org.apache.cxf.xjcplugins>4.1.2</version.org.apache.cxf.xjcplugins>
         <version.org.apache.httpcomponents.httpasyncclient>4.1.5</version.org.apache.httpcomponents.httpasyncclient>
         <version.org.apache.james.apache-mime4j>0.8.13</version.org.apache.james.apache-mime4j>
@@ -512,7 +512,7 @@
         <version.org.hibernate>6.6.40.Final</version.org.hibernate>
         <!-- We need to use this value in configuring maven plugins, so simply overriding version.org.hibernate
              in boms/preview-ee is inadequate. So we'll declare the value here and reference it in boms/preview-ee. -->
-        <version.org.hibernate.preview>7.2.4.Final</version.org.hibernate.preview>
+        <version.org.hibernate.preview>7.2.5.Final</version.org.hibernate.preview>
         <version.org.hibernate.search>7.2.5.Final</version.org.hibernate.search>
         <version.org.hibernate.validator>8.0.3.Final</version.org.hibernate.validator>
         <version.org.hornetq>2.4.11.Final</version.org.hornetq>
@@ -524,7 +524,7 @@
         <version.org.jboss.ejb-client>5.0.8.Final</version.org.jboss.ejb-client>
         <version.org.jboss.ejb3.ext-api>2.4.0.Final</version.org.jboss.ejb3.ext-api>
         <version.org.jboss.genericjms>3.0.0.Final</version.org.jboss.genericjms>
-        <version.org.jboss.hal.console>3.7.17.Final</version.org.jboss.hal.console>
+        <version.org.jboss.hal.console>3.7.18.Final</version.org.jboss.hal.console>
         <version.org.jboss.iiop-client>2.0.1.Final</version.org.jboss.iiop-client>
         <version.org.jboss.ironjacamar>3.0.18.Final</version.org.jboss.ironjacamar>
         <version.org.jboss.jboss-transaction-spi>8.0.0.Final</version.org.jboss.jboss-transaction-spi>
@@ -551,7 +551,7 @@
         <version.org.jboss.ws.jaxws-undertow-httpspi>2.0.0.Final</version.org.jboss.ws.jaxws-undertow-httpspi>
         <version.org.jboss.ws.spi>5.0.0.Final</version.org.jboss.ws.spi>
         <version.org.jboss.xnio.netty.netty-xnio-transport>0.1.10.Final</version.org.jboss.xnio.netty.netty-xnio-transport>
-        <version.org.jctools.jctools-core>4.0.5</version.org.jctools.jctools-core>
+        <version.org.jctools.jctools-core>4.0.6</version.org.jctools.jctools-core>
         <version.org.jgroups>5.5.2.Final</version.org.jgroups>
         <version.org.jgroups.aws>4.0.0.Final</version.org.jgroups.aws>
         <version.org.jgroups.azure>2.0.2.Final</version.org.jgroups.azure>
