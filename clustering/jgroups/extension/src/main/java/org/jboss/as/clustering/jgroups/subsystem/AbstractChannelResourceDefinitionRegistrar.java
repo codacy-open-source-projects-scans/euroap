@@ -45,7 +45,6 @@ import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 import org.jgroups.Address;
 import org.jgroups.JChannel;
-import org.jgroups.fork.ForkChannel;
 import org.jgroups.jmx.JmxConfigurator;
 import org.jgroups.protocols.FORK;
 import org.jgroups.protocols.TP;
@@ -57,7 +56,7 @@ import org.wildfly.clustering.jgroups.spi.ChannelConfiguration;
 import org.wildfly.clustering.jgroups.spi.ForkChannelFactory;
 import org.wildfly.clustering.jgroups.spi.ForkChannelFactoryConfiguration;
 import org.wildfly.clustering.jgroups.spi.JGroupsServiceDescriptor;
-import org.wildfly.clustering.jgroups.spi.PhysicalAddressCache;
+import org.wildfly.clustering.jgroups.spi.TransportConfiguration;
 import org.wildfly.common.function.Functions;
 import org.wildfly.service.Installer.StartWhen;
 import org.wildfly.subsystem.resource.ChildResourceDefinitionRegistrar;
@@ -78,6 +77,8 @@ import org.wildfly.subsystem.service.capture.ServiceValueExecutorRegistry;
  * @param <C> the cache configuration type
  */
 public abstract class AbstractChannelResourceDefinitionRegistrar<C extends ChannelConfiguration> implements ChildResourceDefinitionRegistrar, ResourceServiceConfigurator, ResourceOperationRuntimeHandler, UnaryOperator<ResourceDescriptor.Builder> {
+    // Typically contributed by Infinispan subsystem
+    static final AddressFactory ADDRESS_FACTORY = ServiceLoader.load(AddressFactory.class, AddressFactory.class.getClassLoader()).findFirst().orElse(null);
 
     private static final RuntimeCapability<Void> CHANNEL = RuntimeCapability.Builder.of(JGroupsServiceDescriptor.CHANNEL).setAllowMultipleRegistrations(true).build();
     private static final RuntimeCapability<Void> CHANNEL_FACTORY = RuntimeCapability.Builder.of(ForkChannelFactory.SERVICE_DESCRIPTOR).setAllowMultipleRegistrations(true).build();
@@ -236,18 +237,19 @@ public abstract class AbstractChannelResourceDefinitionRegistrar<C extends Chann
                     if (JGroupsLogger.ROOT_LOGGER.isTraceEnabled()) {
                         JGroupsLogger.ROOT_LOGGER.tracef("JGroups channel %s created with configuration:%n %s", name, channel.getProtocolStack().printProtocolSpec(true));
                     }
-                    if (!(channel instanceof ForkChannel)) {
-                        ServiceLoader.load(AddressFactory.class, AddressFactory.class.getClassLoader()).findFirst().ifPresent(factory -> channel.addAddressGenerator(new AddressGenerator() {
+                    if (ADDRESS_FACTORY != null) {
+                        TransportConfiguration.Topology topology = configuration.getChannelFactory().getConfiguration().getTransport().getTopology();
+                        channel.addAddressGenerator(new AddressGenerator() {
                             @Override
                             public Address generateAddress(String name) {
-                                return factory.createAddress(name, configuration.getChannelFactory().getConfiguration().getTransport().getTopology());
+                                return ADDRESS_FACTORY.createAddress(name, topology);
                             }
 
                             @Override
                             public Address generateAddress() {
                                 return this.generateAddress(null);
                             }
-                        }));
+                        });
                     }
                     return channel.stats(configuration.isStatisticsEnabled());
                 } catch (Exception e) {
@@ -270,9 +272,6 @@ public abstract class AbstractChannelResourceDefinitionRegistrar<C extends Chann
                     throw new IllegalStateException(e);
                 }
                 JGroupsLogger.ROOT_LOGGER.connected(name, channel.getName(), configuration.getClusterName(), channel.getView());
-                if (!(channel instanceof ForkChannel)) {
-                    PhysicalAddressCache.INSTANCE.channelConnected(channel);
-                }
             }
         };
         Consumer<JChannel> disconnect = new Consumer<>() {
@@ -283,9 +282,6 @@ public abstract class AbstractChannelResourceDefinitionRegistrar<C extends Chann
                 JGroupsLogger.ROOT_LOGGER.disconnecting(name, channel.getName(), configuration.getClusterName(), channel.getView());
                 channel.disconnect();
                 JGroupsLogger.ROOT_LOGGER.disconnected(name, channel.getName(), configuration.getClusterName());
-                if (!(channel instanceof ForkChannel)) {
-                    PhysicalAddressCache.INSTANCE.channelDisconnected(channel);
-                }
             }
         };
         installers.add(CapabilityServiceInstaller.builder(CHANNEL, factory).blocking()
