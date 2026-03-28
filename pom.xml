@@ -535,7 +535,7 @@
         <version.org.hibernate>6.6.40.Final</version.org.hibernate>
         <!-- We need to use this value in configuring maven plugins, so simply overriding version.org.hibernate
              in boms/preview-ee is inadequate. So we'll declare the value here and reference it in boms/preview-ee. -->
-        <version.org.hibernate.preview>7.2.5.Final</version.org.hibernate.preview>
+        <version.org.hibernate.preview>7.2.8.Final</version.org.hibernate.preview>
         <version.org.hibernate.search>7.2.5.Final</version.org.hibernate.search>
         <version.org.hibernate.validator>8.0.3.Final</version.org.hibernate.validator>
         <version.org.hornetq>2.4.11.Final</version.org.hornetq>
@@ -590,7 +590,7 @@
         <!--
             Maintain separation between these two frequently updated artifacts to avoid merge conflicts.
         -->
-        <version.org.wildfly.core>32.0.0.Beta5</version.org.wildfly.core>
+        <version.org.wildfly.core>32.0.0.Beta6</version.org.wildfly.core>
         <version.org.wildfly.http-client>2.1.4.Final</version.org.wildfly.http-client>
         <version.org.wildfly.launcher>1.0.2.Final</version.org.wildfly.launcher>
         <version.org.wildfly.mvc.krazo>2.0.1.Final</version.org.wildfly.mvc.krazo>
