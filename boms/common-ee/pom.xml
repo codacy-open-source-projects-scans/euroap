@@ -38,6 +38,8 @@
             'legacy', 'standard', and 'preview' builds.
             -->
 
+            <!-- BOM imports go at the end, after individual artifact declarations. -->
+
             <!-- Keep these sorted -->
 
             <dependency>
@@ -4390,6 +4392,18 @@
                 <groupId>xml-resolver</groupId>
                 <artifactId>xml-resolver</artifactId>
                 <version>${version.xml-resolver}</version>
+            </dependency>
+
+            <!-- BOM imports. These go last so individual artifacts can be overriden above, with earlier
+                 declarations taking precedence. -->
+
+            <!-- Import the core parent to get all the managed dependencies from core -->
+            <dependency>
+                <groupId>org.wildfly.core</groupId>
+                <artifactId>wildfly-core-parent</artifactId>
+                <version>${version.org.wildfly.core}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
         </dependencies>

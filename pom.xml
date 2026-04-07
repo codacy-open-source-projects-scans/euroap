@@ -613,15 +613,6 @@
     <dependencyManagement>
         <dependencies>
 
-            <!-- Import the core parent to get all the managed dependencies from core -->
-            <dependency>
-                <groupId>org.wildfly.core</groupId>
-                <artifactId>wildfly-core-parent</artifactId>
-                <version>${version.org.wildfly.core}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
             <!-- Keep sorted -->
 
             <dependency>
