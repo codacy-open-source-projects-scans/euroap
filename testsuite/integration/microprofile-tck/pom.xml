@@ -59,18 +59,6 @@
         <version.telemetry>${version.org.eclipse.microprofile.telemetry}</version.telemetry>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.wildfly</groupId>
-                <artifactId>${dependency.management.import.test.artifact}</artifactId>
-                <version>${ee.maven.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
         <!-- TODO confirm if this is needed -->
         <dependency>
@@ -248,6 +236,20 @@
             </build>
         </profile>
 
+        <profile>
+            <id>preview-server-tests-config</id>
+            <activation>
+                <property>
+                    <name>preview-server-tests</name>
+                </property>
+            </activation>
+            <properties>
+                <!-- Use the WFP dependencies -->
+                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
+                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
+            </properties>
+        </profile>
+
         <!-- Test against the ee 9 feature pack -->
         <profile>
             <id>preview.test.profile</id>
@@ -261,11 +263,6 @@
                 <maven.repo.local>${settings.localRepository}</maven.repo.local>
                 <!-- Disable the standard copy-based provisioning -->
                 <ts.copy-wildfly.phase>none</ts.copy-wildfly.phase>
-                <!-- Use the WFP dependencyManagement set.
-                     This is set in this profile in a parent module, but the explicit global override
-                     in this module takes precedence. -->
-                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
-                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
             </properties>
             <build>
                 <plugins>
@@ -393,8 +390,6 @@
                 <maven.repo.local>${settings.localRepository}</maven.repo.local>
                 <!-- Disable the standard copy-based provisioning -->
                 <ts.copy-wildfly.phase>none</ts.copy-wildfly.phase>
-                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
-                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
             </properties>
             <build>
                 <plugins>

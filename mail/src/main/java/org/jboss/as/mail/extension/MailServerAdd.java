@@ -8,9 +8,6 @@ package org.jboss.as.mail.extension;
 import static org.jboss.as.controller.security.CredentialReference.handleCredentialReferenceUpdate;
 import static org.jboss.as.controller.security.CredentialReference.rollbackCredentialStoreUpdate;
 
-import java.util.List;
-import java.util.Set;
-
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -24,12 +21,15 @@ import org.jboss.msc.service.ServiceName;
 
 /**
  * @author Tomaz Cerar
- * @created 8.12.11 0:19
  */
 class MailServerAdd extends RestartParentResourceAddHandler {
 
+    // TODO when WFCORE-7545 is done, remove this and rely on auto-population by the superclass
+    private final AttributeDefinition[] attributes;
+
     MailServerAdd(AttributeDefinition[] attributes) {
-        super(MailSubsystemModel.MAIL_SESSION, Set.of(), List.of(attributes));
+        super(MailSubsystemModel.MAIL_SESSION);
+        this.attributes = attributes;
     }
 
     @Override
@@ -38,6 +38,14 @@ class MailServerAdd extends RestartParentResourceAddHandler {
         populateModel(operation, resource.getModel());
         handleCredentialReferenceUpdate(context, resource.getModel());
         recordCapabilitiesAndRequirements(context, operation, resource);
+    }
+
+    // TODO when WFCORE-7545 is done, remove this and rely on auto-population by the superclass
+    @Override
+    protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
+        for (AttributeDefinition def : attributes) {
+            def.validateAndSet(operation, model);
+        }
     }
 
     @Override

@@ -563,8 +563,8 @@
             </activation>
             <properties>
                 <!-- Use the WFP dependencies -->
-                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
-                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
+                <dependency.management.import.artifact>wildfly-preview-ee-bom</dependency.management.import.artifact>
+                <dependency.management.import.test.artifact>wildfly-preview-test-bom</dependency.management.import.test.artifact>
                 <!-- Use the WFP test-feature-pack -->
                 <testsuite.test.feature.pack.artifactId>wildfly-test-feature-pack-preview</testsuite.test.feature.pack.artifactId>
                 <!-- If there are EE-version-specific test sources, uses the ee11 ones -->

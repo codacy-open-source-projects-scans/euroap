@@ -129,10 +129,6 @@
         <profile>
             <id>preview.profile</id>
             <activation><property><name>ts.preview</name></property></activation>
-            <properties>
-                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
-                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
-            </properties>
             <modules>
                 <module>basic</module>
                 <module>expansion</module>

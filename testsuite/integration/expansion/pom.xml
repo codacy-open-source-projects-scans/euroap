@@ -41,18 +41,6 @@
         <dependency.management.import.test.artifact>wildfly-standard-test-expansion-bom</dependency.management.import.test.artifact>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>${full.maven.groupId}</groupId>
-                <artifactId>${dependency.management.import.test.artifact}</artifactId>
-                <version>${full.maven.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
         <!-- MicroProfile APIs -->
         <dependency>
@@ -701,6 +689,20 @@
             </build>
         </profile>
 
+        <profile>
+            <id>preview-server-tests-config</id>
+            <activation>
+                <property>
+                    <name>preview-server-tests</name>
+                </property>
+            </activation>
+            <properties>
+                <!-- Use the WFP dependencies -->
+                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
+                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
+            </properties>
+        </profile>
+
         <!-- Test against WildFly Preview dist -->
         <!-- TODO convert this to a bootable jar setup once a release
              of the wildfly jar plugin with transformation support is available -->
@@ -717,8 +719,6 @@
                 <!-- Use the WFP dependencyManagement set.
                      This is set in this profile in a parent module, but the explicit global override
                      in this module takes precedence. -->
-                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
-                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
                 <testsuite.ee.galleon.pack.artifactId>wildfly-preview-feature-pack</testsuite.ee.galleon.pack.artifactId>
                 <ts.glow.phase>test-compile</ts.glow.phase>
                 <ts.config-as.copy-mgmt-users.phase>test</ts.config-as.copy-mgmt-users.phase>
@@ -1000,12 +1000,6 @@
                 <ts.glow.phase>test-compile</ts.glow.phase>
                 <ts.glow.config-name>standalone.xml</ts.glow.config-name>
                 <ts.bootable-jar-packaging.phase>test-compile</ts.bootable-jar-packaging.phase>
-
-                <!-- Use the WFP dependencyManagement set.
-                     This is set in this profile in a parent module, but the explicit global override
-                     in this module takes precedence. -->
-                <dependency.management.import.artifact>wildfly-preview-expansion-bom</dependency.management.import.artifact>
-                <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
             </properties>
             <build>
                 <plugins>

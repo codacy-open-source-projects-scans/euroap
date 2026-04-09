@@ -153,6 +153,13 @@
             </dependency>
 
             <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${version.org.awaitility.awaitility}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
                 <groupId>org.codehaus.plexus</groupId>
                 <artifactId>plexus-utils</artifactId>
                 <version>${version.org.codehaus.plexus.plexus-utils}</version>
