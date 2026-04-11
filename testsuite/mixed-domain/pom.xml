@@ -329,8 +329,8 @@
             <id>use-alt-feature-pack</id>
             <activation>
                 <property>
-                    <name>testsuite.default.build.project.prefix</name>
-                    <value>ee-</value>
+                    <name>testsuite.ee.galleon.pack.artifactId</name>
+                    <value>wildfly-ee-galleon-pack</value>
                 </property>
             </activation>
             <build>

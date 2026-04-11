@@ -361,7 +361,6 @@
             </activation>
             <properties>
                 <jboss.dist>${project.build.directory}/wildfly</jboss.dist>
-                <testsuite.ee.galleon.pack.artifactId>wildfly-preview-feature-pack</testsuite.ee.galleon.pack.artifactId>
                 <glow.phase>test-compile</glow.phase>
                 <ts.config-as.copy-mgmt-users.phase>process-test-classes</ts.config-as.copy-mgmt-users.phase>
             </properties>

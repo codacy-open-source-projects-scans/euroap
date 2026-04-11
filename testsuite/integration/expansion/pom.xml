@@ -716,10 +716,6 @@
             <properties>
                 <jboss.dist>${project.build.directory}/wildfly</jboss.dist>
 
-                <!-- Use the WFP dependencyManagement set.
-                     This is set in this profile in a parent module, but the explicit global override
-                     in this module takes precedence. -->
-                <testsuite.ee.galleon.pack.artifactId>wildfly-preview-feature-pack</testsuite.ee.galleon.pack.artifactId>
                 <ts.glow.phase>test-compile</ts.glow.phase>
                 <ts.config-as.copy-mgmt-users.phase>test</ts.config-as.copy-mgmt-users.phase>
             </properties>

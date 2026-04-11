@@ -365,20 +365,5 @@
                 <channel.provisioning.phase>none</channel.provisioning.phase>
             </properties>
         </profile>
-        <profile>
-            <id>ignore-ee-alt-dist</id>
-            <activation>
-                <property>
-                    <name>testsuite.default.build.project.prefix</name>
-                    <value>ee-</value>
-                </property>
-            </activation>
-            <properties>
-                <!-- Don't run expansion tests if we're configured to test wildfly-ee -->
-                <surefire.default-test.phase>none</surefire.default-test.phase>
-                <!-- No point provisioning as we won't test -->
-                <channel.provisioning.phase>none</channel.provisioning.phase>
-            </properties>
-        </profile>
     </profiles>
 </project>
