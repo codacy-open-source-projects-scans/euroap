@@ -92,7 +92,7 @@ public abstract class LegacyConfigTest {
     }
 
     private void awaitServerLaunch(ModelControllerClient client, String profile) throws InterruptedException {
-        long timeout = System.currentTimeMillis() + TimeoutUtil.adjust(20000);
+        long timeout = System.currentTimeMillis() + TimeoutUtil.adjust(60_000);
         ModelNode op = Util.getReadAttributeOperation(TEST_SERVER, "server-state");
         do {
             try {

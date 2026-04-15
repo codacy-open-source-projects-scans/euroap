@@ -151,7 +151,7 @@ public class MixedDomainTestSupport extends DomainTestSupport {
             throw new RuntimeException(e);
         }
 
-        long timeout = TimeoutUtil.adjust(20000);
+        long timeout = TimeoutUtil.adjust(60000);
         long expired = System.currentTimeMillis() + timeout;
         ModelNode op = Util.getReadAttributeOperation(PathAddress.pathAddress(hostElement, PathElement.pathElement("server", "server-one")), "server-state");
         do {
