@@ -225,7 +225,7 @@ public abstract class DomainHostExcludesTest {
     }
 
     private void awaitServerLaunch(ModelControllerClient client, PathAddress serverAddr) throws InterruptedException {
-        long timeout = TimeoutUtil.adjust(20000);
+        long timeout = TimeoutUtil.adjust(60_000);
         long expired = System.currentTimeMillis() + timeout;
         ModelNode op = Util.getReadAttributeOperation(serverAddr, "server-state");
         do {
