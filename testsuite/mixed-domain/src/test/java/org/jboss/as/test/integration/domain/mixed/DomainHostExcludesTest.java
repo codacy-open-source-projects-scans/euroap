@@ -208,7 +208,7 @@ public abstract class DomainHostExcludesTest {
     }
 
     @Test
-    public void test002ServerBoot() throws IOException, MgmtOperationException, InterruptedException, OperationFailedException {
+    public void test002ServerBoot() throws IOException, MgmtOperationException, OperationFailedException {
 
         ModelControllerClient primaryClient = testSupport.getDomainPrimaryLifecycleUtil().getDomainClient();
 
@@ -224,25 +224,11 @@ public abstract class DomainHostExcludesTest {
 
     }
 
-    private void awaitServerLaunch(ModelControllerClient client, PathAddress serverAddr) throws InterruptedException {
-        long timeout = TimeoutUtil.adjust(60_000);
-        long expired = System.currentTimeMillis() + timeout;
-        ModelNode op = Util.getReadAttributeOperation(serverAddr, "server-state");
-        do {
-            try {
-                ModelNode state = DomainTestUtils.executeForResult(op, client);
-                if ("running".equalsIgnoreCase(state.asString())) {
-                    MixedDomainTestSupport.assertNoBootErrors(client, serverAddr);
-                    return;
-                }
-            } catch (IOException | MgmtOperationException e) {
-                // ignore and try again
-            }
-
-            TimeUnit.MILLISECONDS.sleep(250L);
-        } while (System.currentTimeMillis() < expired);
-
-        Assert.fail("Server did not start in " + timeout + " ms");
+    private void awaitServerLaunch(ModelControllerClient client, PathAddress serverAddr) throws IOException, MgmtOperationException {
+        PathAddress configAddr = PathAddress.pathAddress(serverAddr.getElement(0),
+                PathElement.pathElement(SERVER_CONFIG, serverAddr.getLastElement().getValue()));
+        DomainTestUtils.waitUntilState(client, configAddr, "STARTED");
+        MixedDomainTestSupport.assertNoBootErrors(client, serverAddr);
     }
 
     @Test
