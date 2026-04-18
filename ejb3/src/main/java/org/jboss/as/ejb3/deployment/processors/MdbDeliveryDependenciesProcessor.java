@@ -25,8 +25,7 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceTarget;
-import org.wildfly.subsystem.service.ServiceDependency;
-import org.wildfly.subsystem.service.ServiceInstaller;
+import org.wildfly.service.ServiceDependency;
 
 import java.util.function.Supplier;
 
@@ -82,7 +81,7 @@ public class MdbDeliveryDependenciesProcessor implements DeploymentUnitProcessor
         }
         if (clusteredSingletonFound) {
             // Ensure singleton barrier is started
-            ServiceInstaller.builder(Boolean.TRUE).requires(ServiceDependency.on(CLUSTERED_SINGLETON_BARRIER)).build().install(phaseContext);
+            phaseContext.requires(ServiceDependency.on(capabilityServiceSupport.getCapabilityServiceName(CLUSTERED_SINGLETON_BARRIER)));
         }
     }
 }
