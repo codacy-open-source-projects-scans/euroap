@@ -76,8 +76,15 @@
         <dependencies>
 
             <!--
-                Re-expose the common-ee deps.
+                Re-expose the shared ee deps.
              -->
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-standard-preview-ee-bom</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>${ee.maven.groupId}</groupId>
                 <artifactId>wildfly-common-ee-dependency-management</artifactId>

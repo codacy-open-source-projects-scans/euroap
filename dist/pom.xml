@@ -78,6 +78,22 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Depend on the ee-only dist to ensure that testsuite setups that depend on this
+             to ensure its contents are available for testing can also rely on the ee-only
+             installation being available. -->
+        <dependency>
+            <groupId>${ee.maven.groupId}</groupId>
+            <artifactId>${latest.ee.dist.artifactId}</artifactId>
+            <version>${ee.maven.version}</version>
+            <type>pom</type>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -143,7 +159,7 @@
                                 <feature-pack>
                                     <transitive>true</transitive>
                                     <groupId>${ee.maven.groupId}</groupId>
-                                    <artifactId>wildfly-ee-galleon-pack</artifactId>
+                                    <artifactId>${latest.ee.feature.pack.artifactId}</artifactId>
                                     <version>${ee.maven.version}</version>
                                     <included-packages>
                                         <name>docs.examples.configs</name>

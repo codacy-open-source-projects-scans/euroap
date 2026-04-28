@@ -96,12 +96,35 @@
         <ee.dist.product.min.stability.level>experimental</ee.dist.product.min.stability.level>
         <ee.maven.groupId>${project.groupId}</ee.maven.groupId>
         <ee.maven.version>${project.version}</ee.maven.version>
+        <legacy.jakarta.version>10</legacy.jakarta.version>
+        <legacy.dist.product.release.name>WildFly EE ${legacy.jakarta.version}</legacy.dist.product.release.name>
+        <!-- Segment of legacy-ee related artifactIds that will change across releases.
+             Used in artifactIds of user-relevant artifacts where we want an artifactId
+             that discloses what the artifact provides -->
+        <legacy.ee.artifactid.segment>ee-${legacy.jakarta.version}</legacy.ee.artifactid.segment>
+        <legacy.ee.feature.pack.artifactId>wildfly-${legacy.ee.artifactid.segment}-feature-pack</legacy.ee.feature.pack.artifactId>
+        <legacy.ee.channel.artifactId>wildfly-${legacy.ee.artifactid.segment}</legacy.ee.channel.artifactId>
+        <legacy.ee.build.artifactId>wildfly-${legacy.ee.artifactid.segment}-build</legacy.ee.build.artifactId>
+        <legacy.ee.dist.artifactId>wildfly-${legacy.ee.artifactid.segment}-dist</legacy.ee.dist.artifactId>
+        <legacy.full.build.artifactId>wildfly-${legacy.ee.artifactid.segment}-expansion-build</legacy.full.build.artifactId>
+        <legacy.full.dist.artifactId>wildfly-${legacy.ee.artifactid.segment}-expansion-dist</legacy.full.dist.artifactId>
+        <latest.jakarta.version>11</latest.jakarta.version> <!-- for downstream use -->
+        <latest.ee.artifactid.segment>ee</latest.ee.artifactid.segment>
+        <latest.ee.feature.pack.artifactId>wildfly-${latest.ee.artifactid.segment}-galleon-pack</latest.ee.feature.pack.artifactId>
+        <latest.ee.channel.artifactId>wildfly-${latest.ee.artifactid.segment}</latest.ee.channel.artifactId>
+        <latest.ee.build.artifactId>wildfly-${latest.ee.artifactid.segment}-build</latest.ee.build.artifactId>
+        <latest.ee.dist.artifactId>wildfly-${latest.ee.artifactid.segment}-dist</latest.ee.dist.artifactId>
+        <latest.full.build.artifactId>wildfly-build</latest.full.build.artifactId>
+        <latest.full.dist.artifactId>wildfly-dist</latest.full.dist.artifactId>
         <preview.dist.product.release.name>WildFly Preview</preview.dist.product.release.name>
         <preview.dist.product.slot>${full.dist.product.slot}</preview.dist.product.slot>
         <preview.dist.product.release.version>${full.dist.product.release.version}</preview.dist.product.release.version>
         <preview.dist.product.stability.level>preview</preview.dist.product.stability.level>
         <preview.dist.product.min.stability.level>experimental</preview.dist.product.min.stability.level>
         <product.docs.server.version>40</product.docs.server.version>
+        <!-- TODO WFLY-21408 Apply workaround for dependabot pom.xml parsing issue "ERROR: Invalid expression: /project/groupId}.channel" -->
+        <!-- <channels.maven.groupId>${project.groupId}.channels</channels.maven.groupId> -->
+        <channels.maven.groupId>org.wildfly.channels</channels.maven.groupId>
         <!-- The Galleon channel for the minor version with which this branch is associated.  -->
         <galleon.minor.channel>${product.docs.server.version}.0</galleon.minor.channel>
 
@@ -159,7 +182,7 @@
             This list should only be modified if we are making a change to our general
             recommendation of what settings an external *client* application should use
             *in order to utilize our client-side libraries*. It is not meant to cover
-            settings a client app might need to support it's own code.
+            settings a client app might need to support its own code.
 
             This list is not meant to control server-side JPMS settings.
 
@@ -203,14 +226,13 @@
         <server.output.dir.prefix>wildfly</server.output.dir.prefix>
         <!-- Version suffix that is appended to directories. Default is the maven GAV version but this can be edited to use a short form version -->
         <server.output.dir.version>${project.version}</server.output.dir.version>
-
-        <!-- Properties related to the directory from which testsuite modules that don't create their own dists
-             should obtain the dist to test -->
-        <!-- First, prefix to add to the standard maven child project whose output should be used.
-             An empty value means no prefix.
-             Custom test jobs can override this using -D, e.g. -Dtestsuite.default.build.project.prefix=ee- -->
-        <testsuite.default.build.project.prefix></testsuite.default.build.project.prefix>
-        <wildfly.build.output.dir>${testsuite.default.build.project.prefix}build/target/${server.output.dir.prefix}-${server.output.dir.version}</wildfly.build.output.dir>
+        <!-- 'Qualifier' that is added to "ee-xxx" builds and dists -->
+        <latest.ee.output.qualifier></latest.ee.output.qualifier>
+        <legacy.ee.output.qualifier>ee-${legacy.jakarta.version}-</legacy.ee.output.qualifier>
+        <preview.output.qualifier>preview-</preview.output.qualifier>
+        <latest.server.output.dir>${server.output.dir.prefix}-${latest.ee.output.qualifier}${server.output.dir.version}</latest.server.output.dir>
+        <legacy.server.output.dir>${server.output.dir.prefix}-${legacy.ee.output.qualifier}${server.output.dir.version}</legacy.server.output.dir>
+        <preview.server.output.dir>${server.output.dir.prefix}-${preview.output.qualifier}${server.output.dir.version}</preview.server.output.dir>
 
         <!-- Protocol to use for communication with remote maven repositories.
              You can set to 'http' if you are using a maven proxy and 'https'
@@ -229,35 +251,6 @@
         <testLogToFile>true</testLogToFile>
         <maven.test.redirectTestOutputToFile>${testLogToFile}</maven.test.redirectTestOutputToFile>
 
-        <!-- Galleon feature pack to use in testsuite provisioning executions that provide content
-             that *could* be obtained solely from the wildfly-ee-galleon-pack or its dependencies.
-             Test jobs can override this using -D to test using different feature pack.
-        -->
-        <testsuite.ee.galleon.pack.groupId>${full.maven.groupId}</testsuite.ee.galleon.pack.groupId>
-        <testsuite.ee.galleon.pack.artifactId>wildfly-galleon-pack</testsuite.ee.galleon.pack.artifactId>
-        <testsuite.ee.galleon.pack.version>${full.maven.version}</testsuite.ee.galleon.pack.version>
-        <!-- Galleon feature pack to use in testsuite provisioning executions that provide content
-             that *cannot* be obtained solely from the wildfly-ee-galleon-pack or its dependencies.
-             Test jobs can override this using -D to test using a different feature pack.
-        -->
-        <testsuite.full.galleon.pack.groupId>${full.maven.groupId}</testsuite.full.galleon.pack.groupId>
-        <testsuite.full.galleon.pack.artifactId>wildfly-galleon-pack</testsuite.full.galleon.pack.artifactId>
-        <testsuite.full.galleon.pack.version>${full.maven.version}</testsuite.full.galleon.pack.version>
-        <!-- Galleon feature pack to use in testsuite provisioning executions that install test-specific content.
-             Profiles can set this to wildfly-test-feature-pack-preview when testing wildfly-preview.
-        -->
-        <testsuite.test.feature.pack.artifactId>wildfly-test-feature-pack</testsuite.test.feature.pack.artifactId>
-
-        <!-- WildFly Channels based provisioning configuration.
-             By default, if channels drive the provisioning we use the 'wildfly' channel.
-             Profiles that focus on wildfly-preview or wildfly-ee can change that.
-         -->
-        <!-- TODO WFLY-21408 Apply workaround for dependabot pom.xml parsing issue "ERROR: Invalid expression: /project/groupId}.channel" -->
-        <!-- <channels.maven.groupId>${project.groupId}.channels</channels.maven.groupId> -->
-        <channels.maven.groupId>org.wildfly.channels</channels.maven.groupId>
-        <channels.maven.artifactId>wildfly</channels.maven.artifactId>
-        <channels.maven.version>${full.maven.version}</channels.maven.version>
-
 
         <!-- Properties that set the phase used for different plugin executions.
              Profiles can override the values here to enable/disable executions.
@@ -268,15 +261,16 @@
              still being easily disabled in profiles where it is not wanted. -->
         <surefire.default-test.phase>test</surefire.default-test.phase>
 
-        <!-- Copyright footer for generated documentation -->
-
-        <wildfly.copyright><![CDATA[
+        <!-- Simple copyright text. Used in feature pack generation for the generated catalog content -->
+        <wildfly.copyright.simple>The WildFly authors</wildfly.copyright.simple>
+        <!-- Complex copyright footer for generated html documentation -->
+        <wildfly.copyright.html><![CDATA[
             <img src="https://raw.githubusercontent.com/commonhaus/artwork/main/foundation/brand/project/svg/CF_logo_wildFly_default.svg" style="height: 120px;"/>
             <br />
             Copyright &copy; <a href="https://wildfly.org">WildFly</a>.<br />
             All rights reserved. For details on our trademarks, please visit our <a href="https://www.commonhaus.org/policies/trademark-policy/">Trademark Policy</a> and <a href="https://www.commonhaus.org/trademarks/">Trademark List</a>.<br />
             Trademarks of third parties are owned by their respective holders and their mention here does not suggest any endorsement or association.
-        ]]></wildfly.copyright>
+        ]]></wildfly.copyright.html>
 
         <!-- Base wildfly version used by testsuite/galleon/update test to install a server that gets updated to the SNAPSHOT version -->
         <wildfly.test.galleon.update.base.version>26.1.1.Final</wildfly.test.galleon.update.base.version>
@@ -567,7 +561,7 @@
         <version.org.jboss.spec.jakarta.xml.soap.saaj-api_3.0_spec>1.0.0.Final</version.org.jboss.spec.jakarta.xml.soap.saaj-api_3.0_spec>
         <version.org.jboss.spec.jakarta.xml.ws.api_4.0_spec>1.0.0.Final</version.org.jboss.spec.jakarta.xml.ws.api_4.0_spec>
         <version.org.jboss.universe.community>1.2.2.Final</version.org.jboss.universe.community>
-        <version.org.jboss.universe.producer.wildfly>1.3.17.Final</version.org.jboss.universe.producer.wildfly>
+        <version.org.jboss.universe.producer.wildfly>1.4.0.Final</version.org.jboss.universe.producer.wildfly>
         <version.org.jboss.weld.weld>5.1.7.Final</version.org.jboss.weld.weld>
         <version.org.jboss.weld.weld-api>5.0.SP3</version.org.jboss.weld.weld-api>
         <version.org.jboss.ws.api>3.0.0.Final</version.org.jboss.ws.api>
@@ -646,14 +640,22 @@
 
             <dependency>
                 <groupId>${ee.maven.groupId}</groupId>
-                <artifactId>wildfly-ee-build</artifactId>
+                <artifactId>${latest.ee.build.artifactId}</artifactId>
                 <version>${ee.maven.version}</version>
                 <type>pom</type>
             </dependency>
 
             <dependency>
                 <groupId>${channels.maven.groupId}</groupId>
-                <artifactId>wildfly-ee</artifactId>
+                <artifactId>wildfly-${latest.ee.artifactid.segment}</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>yaml</type>
+                <classifier>manifest</classifier>
+            </dependency>
+
+            <dependency>
+                <groupId>${channels.maven.groupId}</groupId>
+                <artifactId>wildfly-${legacy.ee.artifactid.segment}</artifactId>
                 <version>${ee.maven.version}</version>
                 <type>yaml</type>
                 <classifier>manifest</classifier>
@@ -661,7 +663,7 @@
 
             <dependency>
                 <groupId>${ee.maven.groupId}</groupId>
-                <artifactId>wildfly-ee-dist</artifactId>
+                <artifactId>${latest.ee.dist.artifactId}</artifactId>
                 <version>${ee.maven.version}</version>
                 <type>pom</type>
             </dependency>
@@ -696,14 +698,56 @@
 
             <dependency>
                 <groupId>${ee.maven.groupId}</groupId>
-                <artifactId>wildfly-ee-galleon-pack</artifactId>
+                <artifactId>wildfly-ee-feature-pack-galleon-shared-legacy</artifactId>
                 <version>${ee.maven.version}</version>
                 <type>pom</type>
             </dependency>
 
             <dependency>
                 <groupId>${ee.maven.groupId}</groupId>
-                <artifactId>wildfly-ee-galleon-pack</artifactId>
+                <artifactId>wildfly-ee-feature-pack-galleon-shared-legacy</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>zip</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-ee-feature-pack-galleon-shared-preview</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-ee-feature-pack-galleon-shared-preview</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>zip</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>${latest.ee.feature.pack.artifactId}</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>${latest.ee.feature.pack.artifactId}</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>zip</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>${legacy.ee.feature.pack.artifactId}</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>${legacy.ee.feature.pack.artifactId}</artifactId>
                 <version>${ee.maven.version}</version>
                 <type>zip</type>
             </dependency>
@@ -809,6 +853,20 @@
 
             <dependency>
                 <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-standard-legacy-ee-bom</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-standard-preview-ee-bom</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
                 <artifactId>wildfly-standard-test-bom</artifactId>
                 <version>${ee.maven.version}</version>
                 <type>pom</type>
@@ -816,14 +874,14 @@
 
             <dependency>
                 <groupId>${full.maven.groupId}</groupId>
-                <artifactId>wildfly-build</artifactId>
+                <artifactId>${latest.full.build.artifactId}</artifactId>
                 <version>${full.maven.version}</version>
                 <type>pom</type>
             </dependency>
 
             <dependency>
                 <groupId>${full.maven.groupId}</groupId>
-                <artifactId>wildfly-dist</artifactId>
+                <artifactId>${latest.full.dist.artifactId}</artifactId>
                 <version>${full.maven.version}</version>
                 <type>pom</type>
             </dependency>
@@ -854,6 +912,34 @@
                 <artifactId>wildfly-galleon-pack</artifactId>
                 <version>${full.maven.version}</version>
                 <type>zip</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${full.maven.groupId}</groupId>
+                <artifactId>${legacy.full.build.artifactId}</artifactId>
+                <version>${full.maven.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${full.maven.groupId}</groupId>
+                <artifactId>${legacy.full.dist.artifactId}</artifactId>
+                <version>${full.maven.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>${legacy.ee.build.artifactId}</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+            </dependency>
+
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>${legacy.ee.dist.artifactId}</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
             </dependency>
 
             <dependency>
@@ -1507,6 +1593,8 @@
                 <module>boms/common-ee</module>
                 <module>boms/legacy-ee</module>
                 <module>boms/legacy-test</module>
+                <module>boms/standard-legacy-ee</module>
+                <module>boms/standard-preview-ee</module>
                 <module>boms/standard-ee</module>
                 <module>boms/standard-test</module>
                 <module>boms/user</module>
@@ -1602,6 +1690,21 @@
         </profile>
 
         <profile>
+            <id>legacy-ee-build</id>
+            <activation>
+                <property>
+                    <name>!no.legacy.ee.build</name>
+                </property>
+            </activation>
+            <modules>
+                <module>boms/legacy-ee</module>
+                <module>boms/legacy-test</module>
+                <module>legacy/ee-feature-pack</module>
+                <module>legacy/channel</module>
+            </modules>
+        </profile>
+
+        <profile>
             <id>preview-build</id>
             <activation>
                 <property>
@@ -1693,48 +1796,6 @@
         </profile>
 
         <profile>
-            <!-- Use the latest version of the standard channels when provisioning. -->
-            <id>latest.standard.channels.profile</id>
-            <activation><property><name>latest.standard.channels</name></property></activation>
-            <properties>
-                <!-- Allow online provisioning so wildfly-maven-plugin can resolve the latest manifests -->
-                <galleon.offline>false</galleon.offline>
-                <!-- The wildfly-maven-plugin 'provision' mojo will provision using a channel
-                     if a wildfly.channels pom property is set.
-
-                     Here we don't specify the channel version, so wildfly-maven-plugin will use the latest.
-                     (See 'internal.channel.profile' where we specify the version.)
-                -->
-                <wildfly.channels>${channels.maven.groupId}:${channels.maven.artifactId}</wildfly.channels>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.wildfly.plugins</groupId>
-                        <artifactId>wildfly-maven-plugin</artifactId>
-                        <version>${version.org.wildfly.plugin}</version>
-                        <configuration>
-                            <channels>
-                                <channel>
-                                    <manifest>
-                                        <groupId>${channels.maven.groupId}</groupId>
-                                        <artifactId>wildfly-ee</artifactId>
-                                    </manifest>
-                                </channel>
-                                <channel>
-                                    <manifest>
-                                        <groupId>${channels.maven.groupId}</groupId>
-                                        <artifactId>wildfly</artifactId>
-                                    </manifest>
-                                </channel>
-                            </channels>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
             <!-- Use the channels specified by the user-provided external.wildfly.channels property
                  when provisioning. -->
             <id>external.channel.profile</id>
@@ -1749,37 +1810,6 @@
                      users having learned to directly use -Dwildfly.channels.
                  -->
                 <wildfly.channels>${external.wildfly.channels}</wildfly.channels>
-            </properties>
-        </profile>
-
-        <profile>
-            <!-- Use the internally-created channel when provisioning -->
-            <id>internal.channel.profile</id>
-            <activation><property><name>internal.wildfly.channels</name></property></activation>
-            <properties>
-                <!-- The wildfly-maven-plugin 'provision' mojo will provision using a channel
-                     if a wildfly.channels pom property is set.
-
-                     Here we fully specify the channel GAV. The value of ${channels.maven.version}
-                     is expected to be the project.version of the relevant feature pack being
-                     built during this build.
-                -->
-                <wildfly.channels>${channels.maven.groupId}:${channels.maven.artifactId}:${channels.maven.version}</wildfly.channels>
-            </properties>
-        </profile>
-
-        <profile>
-            <id>preview.server.test</id>
-            <activation>
-                <property>
-                    <name>preview-server-tests</name>
-                </property>
-            </activation>
-            <properties>
-                <wildfly.build.output.dir>preview/build/target/${server.output.dir.prefix}-preview-${server.output.dir.version}</wildfly.build.output.dir>
-                <testsuite.ee.galleon.pack.artifactId>wildfly-preview-feature-pack</testsuite.ee.galleon.pack.artifactId>
-                <testsuite.full.galleon.pack.artifactId>wildfly-preview-feature-pack</testsuite.full.galleon.pack.artifactId>
-                <testsuite.test.feature.pack.artifactId>wildfly-test-feature-pack-preview</testsuite.test.feature.pack.artifactId>
             </properties>
         </profile>
 
@@ -2027,29 +2057,6 @@
                     <layout>default</layout>
                 </pluginRepository>
             </pluginRepositories>
-        </profile>
-
-        <!-- Configures testsuite to use the non-default Galleon pack to provision EE content.
-             This profile is meant to eliminate the need to use -D to see all three parts of the GAV
-             in order to test provisioning using a different feature pack. -->
-        <profile>
-            <id>test.ee.galleon.pack.profile</id>
-            <activation>
-                <property>
-                    <name>testsuite.ee.galleon.pack.artifactId</name>
-                    <value>wildfly-ee-galleon-pack</value>
-                </property>
-            </activation>
-            <properties>
-                <testsuite.ee.galleon.pack.groupId>${ee.maven.groupId}</testsuite.ee.galleon.pack.groupId>
-                <testsuite.ee.galleon.pack.version>${ee.maven.version}</testsuite.ee.galleon.pack.version>
-                <!-- If we are using channel-driven provisioning, use the wildfly-ee channel -->
-                <channel.maven.artifactId>wildfly-ee</channel.maven.artifactId>
-                <channel.maven.version>${ee.maven.version}</channel.maven.version>
-                <!-- If we are using this feature pack to provision testsuite installations, assume that
-                     for testsuites that use pre-built installations we want the corresponding ones. -->
-                <testsuite.default.build.project.prefix>ee-</testsuite.default.build.project.prefix>
-            </properties>
         </profile>
 
         <!-- Disable standard compilation execution.

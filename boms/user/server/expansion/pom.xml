@@ -149,7 +149,7 @@
 
     <profiles>
         <profile>
-            <id>skip.preview</id>
+            <id>preview-ee-build</id>
             <activation>
                 <property>
                     <name>!no.preview.build</name>
@@ -157,6 +157,18 @@
             </activation>
             <modules>
                 <module>preview</module>
+            </modules>
+        </profile>
+
+        <profile>
+            <id>legacy-ee-build</id>
+            <activation>
+                <property>
+                    <name>!no.legacy.ee.build</name>
+                </property>
+            </activation>
+            <modules>
+                <module>legacy</module>
             </modules>
         </profile>
     </profiles>
