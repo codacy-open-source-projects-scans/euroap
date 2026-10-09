@@ -16,12 +16,44 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-preview-dist</artifactId>
-    <name>WildFly Preview: Distribution</name>
     <packaging>jar</packaging>
+
+    <name>WildFly Preview: Distribution</name>
+    <description>WildFly Preview: Distribution</description>
+    <url>https://wildfly.org</url>
+
+    <organization>
+        <name>WildFly</name>
+        <url>https://wildfly.org</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>Apache License 2.0</name>
+            <url>http://repository.jboss.org/licenses/apache-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:${jboss.as.scm.connection}</connection>
+        <developerConnection>scm:git:${jboss.as.scm.connection}</developerConnection>
+        <url>${jboss.as.scm.url}</url>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>wildfly.org</id>
+            <name>WildFly Community</name>
+            <organization>wildfly.org</organization>
+            <organizationUrl>https://wildfly.org</organizationUrl>
+        </developer>
+    </developers>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -94,6 +126,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -102,7 +139,6 @@
             <plugin>
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-maven-plugin</artifactId>
-                <version>${version.org.wildfly.plugin}</version>
                 <executions>
                     <execution>
                         <id>server-provisioning</id>
@@ -306,6 +342,36 @@
                                 <goals>
                                     <goal>jar-no-fork</goal>
                                 </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- GPG signing is configured elsewhere. Just redeclare the execution here to help
+                         ensure the wildfly-detach-plugin runs after and can detach the asc files -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>gpg-sign</id>
+                                <phase>verify</phase> <!-- the normal phase for the 'sign' mojo -->
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-detach-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <!-- We built tars for local use, but we don't
+                                     want to install or deploy them. -->
+                                <id>detach-tars</id>
+                                <goals>
+                                    <goal>detach-artifacts</goal>
+                                </goals>
+                                <phase>verify</phase>
+                                <configuration>
+                                    <regex>\S{1,}tar\.gz\S*</regex>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>

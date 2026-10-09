@@ -16,28 +16,29 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-ee-feature-pack-galleon-shared-legacy</artifactId>
 
-    <name>WildFly: EE Feature Pack Shared Galleon Content -- Legacy</name>
-    <description>Content for the wildfly-ee feature pack that can also be used in the wildfly-legacy-ee feature pack</description>
+    <name>WildFly: EE Feature-Pack Shared Galleon Content -- Legacy</name>
+    <description>Content for the wildfly-ee feature-pack that can also be used in the wildfly-legacy-ee feature-pack</description>
     <packaging>pom</packaging>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>${ee.maven.groupId}</groupId>
+                <artifactId>wildfly-standard-legacy-ee-bom</artifactId>
+                <version>${ee.maven.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>jakarta.enterprise.concurrent</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${ee.maven.groupId}</groupId>
-            <artifactId>wildfly-concurrency-impl-30</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${ee.maven.groupId}</groupId>
-            <artifactId>wildfly-concurrency-spi</artifactId>
-        </dependency>
+
     </dependencies>
 
     <build>

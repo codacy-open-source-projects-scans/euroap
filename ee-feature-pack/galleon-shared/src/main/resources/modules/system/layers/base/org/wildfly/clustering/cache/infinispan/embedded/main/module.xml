@@ -18,6 +18,7 @@
     <dependencies>
         <module name="jakarta.transaction.api"/>
 
+        <module name="com.github.ben-manes.caffeine"/>
         <module name="io.github.resilience4j.core"/>
         <module name="io.github.resilience4j.retry"/>
         <module name="io.reactivex.rxjava3.rxjava"/>
@@ -26,7 +27,7 @@
         <module name="org.jgroups" optional="true"/>
         <module name="org.reactivestreams"/>
         <module name="org.wildfly.clustering.cache.caffeine"/>
-        <module name="org.wildfly.clustering.cache.infinispan.common"/>
+        <module name="org.wildfly.clustering.cache.infinispan.common" services="import"/>
         <module name="org.wildfly.clustering.cache.spi"/>
         <module name="org.wildfly.clustering.context"/>
         <module name="org.wildfly.clustering.function"/>

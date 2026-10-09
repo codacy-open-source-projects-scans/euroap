@@ -253,7 +253,7 @@ public abstract class AbstractChannelResourceDefinitionRegistrar<C extends Chann
                             }
                         });
                     }
-                    return channel.stats(configuration.isStatisticsEnabled());
+                    return channel;
                 } catch (Exception e) {
                     throw new IllegalStateException(e);
                 }
@@ -349,7 +349,9 @@ public abstract class AbstractChannelResourceDefinitionRegistrar<C extends Chann
                     String protocolName = protocolResource.getName();
                     Class<? extends Protocol> protocolClass = findProtocolClass(context, protocolName, protocolResource.getModel());
                     this.register(registration, protocolName, protocolClass);
-                    resource.registerChild(StackResourceDefinitionRegistrar.Component.PROTOCOL.pathElement(protocolName), PlaceholderResource.INSTANCE);
+                    if (resource != stackResource) {
+                        resource.registerChild(StackResourceDefinitionRegistrar.Component.PROTOCOL.pathElement(protocolName), PlaceholderResource.INSTANCE);
+                    }
                 }
             }
         }
@@ -365,7 +367,7 @@ public abstract class AbstractChannelResourceDefinitionRegistrar<C extends Chann
         ManagementResourceRegistration registration = context.getResourceRegistrationForUpdate();
         if (address.equals(stackAddress)) {
             // This is a fork channel resource, unregister runtime attributes of protocols
-            for (PathElement protocolPath : registration.getChildAddresses(stackAddress)) {
+            for (PathElement protocolPath : registration.getChildAddresses(PathAddress.EMPTY_ADDRESS)) {
                 ManagementResourceRegistration protocolRegistration = registration.getSubModel(PathAddress.pathAddress(protocolPath));
                 for (Map.Entry<String, AttributeAccess> entry : protocolRegistration.getAttributes(PathAddress.EMPTY_ADDRESS).entrySet()) {
                     if (entry.getValue().getStorageType() == AttributeAccess.Storage.RUNTIME) {

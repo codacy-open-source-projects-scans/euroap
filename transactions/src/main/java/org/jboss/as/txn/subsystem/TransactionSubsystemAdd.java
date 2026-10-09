@@ -16,7 +16,9 @@ import static org.jboss.as.txn.subsystem.TransactionSubsystemRootResourceDefinit
 import static org.jboss.as.txn.subsystem.TransactionSubsystemRootResourceDefinition.XA_RESOURCE_RECOVERY_REGISTRY_CAPABILITY;
 
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -29,6 +31,7 @@ import com.arjuna.ats.internal.arjuna.utils.UuidProcessId;
 import com.arjuna.ats.jbossatx.jta.RecoveryManagerService;
 import com.arjuna.ats.jta.common.JTAEnvironmentBean;
 import com.arjuna.ats.jts.common.jtsPropertyManager;
+import com.arjuna.orbportability.common.OrbPortabilityEnvironmentBean;
 import io.undertow.server.handlers.PathHandler;
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -53,12 +56,14 @@ import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.ServerEnvironmentService;
+import org.jboss.as.controller.management.Capabilities;
 import org.jboss.as.server.deployment.Phase;
-import org.jboss.as.server.suspend.SuspendController;
+import org.jboss.as.server.suspend.SuspendableActivityRegistrar;
 import org.jboss.as.txn.deployment.TransactionDependenciesProcessor;
 import org.jboss.as.txn.deployment.TransactionJndiBindingProcessor;
 import org.jboss.as.txn.deployment.TransactionLeakRollbackProcessor;
 import org.jboss.as.txn.integration.JBossContextXATerminator;
+import org.jboss.as.txn.config.RecoveryGracefulShutdown;
 import org.jboss.as.txn.logging.TransactionLogger;
 import org.jboss.as.txn.service.ArjunaObjectStoreEnvironmentService;
 import org.jboss.as.txn.service.ArjunaRecoveryManagerService;
@@ -67,6 +72,7 @@ import org.jboss.as.txn.service.JBossContextXATerminatorService;
 import org.jboss.as.txn.service.CoreEnvironmentService;
 import org.jboss.as.txn.service.JTAEnvironmentBeanService;
 import org.jboss.as.txn.service.LocalTransactionContextService;
+import org.jboss.as.txn.service.OrbPortabilityEnvironmentService;
 import org.jboss.as.txn.service.RemotingTransactionServiceService;
 import org.jboss.as.txn.service.TransactionManagerService;
 import org.jboss.as.txn.service.TransactionRemoteHTTPService;
@@ -202,6 +208,7 @@ class TransactionSubsystemAdd extends AbstractBoottimeAddStepHandler {
         TransactionSubsystemRootResourceDefinition.BINDING.validateAndSet(operation, model);
         TransactionSubsystemRootResourceDefinition.STATUS_BINDING.validateAndSet(operation, model);
         TransactionSubsystemRootResourceDefinition.RECOVERY_LISTENER.validateAndSet(operation, model);
+        TransactionSubsystemRootResourceDefinition.TRANSACTIONS_RECOVERY_GRACEFUL_SHUTDOWN.validateAndSet(operation, model);
     }
 
     private void validateStoreConfig(ModelNode operation, ModelNode model) throws OperationFailedException {
@@ -399,14 +406,16 @@ class TransactionSubsystemAdd extends AbstractBoottimeAddStepHandler {
         final String recoveryBindingName = TransactionSubsystemRootResourceDefinition.BINDING.resolveModelAttribute(context, model).asString();
         final String recoveryStatusBindingName = TransactionSubsystemRootResourceDefinition.STATUS_BINDING.resolveModelAttribute(context, model).asString();
         final boolean recoveryListener = TransactionSubsystemRootResourceDefinition.RECOVERY_LISTENER.resolveModelAttribute(context, model).asBoolean();
+        final RecoveryGracefulShutdown gracefulRecoveryShutdown = RecoveryGracefulShutdown.valueOf(TransactionSubsystemRootResourceDefinition.TRANSACTIONS_RECOVERY_GRACEFUL_SHUTDOWN.resolveModelAttribute(context, model).asString().toUpperCase(Locale.ENGLISH));
 
         final CapabilityServiceBuilder<?> recoveryManagerServiceServiceBuilder = serviceTarget.addService();
         final Consumer<RecoveryManagerService> consumer = recoveryManagerServiceServiceBuilder.provides(XA_RESOURCE_RECOVERY_REGISTRY_CAPABILITY, TxnServices.JBOSS_TXN_ARJUNA_RECOVERY_MANAGER);
         final Supplier<SocketBinding> recoveryBindingSupplier = recoveryManagerServiceServiceBuilder.requires(SocketBinding.SERVICE_DESCRIPTOR, recoveryBindingName);
         final Supplier<SocketBinding> statusBindingSupplier = recoveryManagerServiceServiceBuilder.requires(SocketBinding.SERVICE_DESCRIPTOR, recoveryStatusBindingName);
         final Supplier<SocketBindingManager> bindingManagerSupplier = recoveryManagerServiceServiceBuilder.requires(SocketBindingManager.SERVICE_DESCRIPTOR);
-        final Supplier<SuspendController> suspendControllerSupplier = recoveryManagerServiceServiceBuilder.requiresCapability("org.wildfly.server.suspend-controller", SuspendController.class);
+        final Supplier<SuspendableActivityRegistrar> suspendableActivityRegistrarSupplier = recoveryManagerServiceServiceBuilder.requires(SuspendableActivityRegistrar.SERVICE_DESCRIPTOR);
         final Supplier<ProcessStateNotifier> processStateSupplier = recoveryManagerServiceServiceBuilder.requires(ProcessStateNotifier.SERVICE_DESCRIPTOR);
+        final Supplier<Executor> executorSupplier = recoveryManagerServiceServiceBuilder.requires(Capabilities.MANAGEMENT_EXECUTOR);
         recoveryManagerServiceServiceBuilder.requires(TxnServices.JBOSS_TXN_CORE_ENVIRONMENT);
         recoveryManagerServiceServiceBuilder.requires(TxnServices.JBOSS_TXN_ARJUNA_OBJECTSTORE_ENVIRONMENT);
 
@@ -482,7 +491,7 @@ class TransactionSubsystemAdd extends AbstractBoottimeAddStepHandler {
         xaTerminatorSB.setInstance(contextXATerminatorService).install();
 
         // TODO: refactor
-        final ArjunaRecoveryManagerService recoveryManagerService = new ArjunaRecoveryManagerService(consumer, recoveryBindingSupplier, statusBindingSupplier, bindingManagerSupplier, suspendControllerSupplier, processStateSupplier, orbSupplier, recoveryListener, jts);
+        final ArjunaRecoveryManagerService recoveryManagerService = new ArjunaRecoveryManagerService(consumer, recoveryBindingSupplier, statusBindingSupplier, bindingManagerSupplier, suspendableActivityRegistrarSupplier, processStateSupplier, executorSupplier, orbSupplier, recoveryListener, jts, gracefulRecoveryShutdown);
         recoveryManagerServiceServiceBuilder.setInstance(recoveryManagerService);
         recoveryManagerServiceServiceBuilder.install();
     }
@@ -513,6 +522,13 @@ class TransactionSubsystemAdd extends AbstractBoottimeAddStepHandler {
         if (jts) {
             orbSupplier = sb.requires(ServiceName.JBOSS.append("iiop-openjdk", "orb-service"));
             sb.requires(CorbaNamingService.SERVICE_NAME);
+            sb.requires(TxnServices.JBOSS_TXN_ORB_PORTABILITY_ENVIRONMENT);
+
+            // install OrbPortabilityEnvironmentBean service
+            final CapabilityServiceBuilder<?> orbPortSB = context.getCapabilityServiceTarget().addService();
+            final Consumer<OrbPortabilityEnvironmentBean> orbPortConsumer = orbPortSB.provides(TxnServices.JBOSS_TXN_ORB_PORTABILITY_ENVIRONMENT);
+            final Supplier<ServerEnvironment> serverEnvSupplier = orbPortSB.requires(ServerEnvironment.SERVICE_DESCRIPTOR);
+            orbPortSB.setInstance(new OrbPortabilityEnvironmentService(orbPortConsumer, serverEnvSupplier)).install();
         }
         final ArjunaTransactionManagerService transactionManagerService = new ArjunaTransactionManagerService(txnManagerServiceConsumer, xaTerminatorSupplier, orbSupplier, userTransactionRegistrySupplier, jtaEnvironmentBeanSupplier, coordinatorEnableStatistics, coordinatorDefaultTimeout, transactionStatusManagerEnable, jts);
         sb.setInstance(transactionManagerService);

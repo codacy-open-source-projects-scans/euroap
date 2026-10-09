@@ -29,7 +29,6 @@ import org.wildfly.clustering.cache.infinispan.remote.RemoteCacheContainerDecora
 import org.wildfly.clustering.function.Runner;
 import org.wildfly.clustering.infinispan.client.RemoteCacheContainer;
 import org.wildfly.clustering.server.Registrar;
-import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
  * Container managed {@link RemoteCacheManager} decorator, whose lifecycle methods are no-ops.
@@ -60,7 +59,7 @@ public class ManagedRemoteCacheContainer extends RemoteCacheContainerDecorator i
     @Override
     public <K, V> RemoteCache<K, V> getCache(String cacheName) {
         List<Runnable> stopTasks = new LinkedList<>();
-        ClassLoader loader = WildFlySecurityManager.getCurrentContextClassLoaderPrivileged();
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
         Module module = Module.forClassLoader(loader, false);
         // If thread context is that of a deployment ...
         if ((module != null) && module.getName().startsWith(ServiceModuleLoader.MODULE_PREFIX)) {
@@ -69,13 +68,13 @@ public class ManagedRemoteCacheContainer extends RemoteCacheContainerDecorator i
             synchronized (configurations) {
                 // If remote cache configuration is undefined, auto-create
                 if (!configurations.containsKey(cacheName)) {
-                    Marshaller marshaller = UserMarshallerFactory.forMediaType(this.container.getMarshaller().mediaType()).createUserMarshaller(this.loader, List.of(loader));
+                    Marshaller marshaller = UserMarshallerFactory.forMediaType(this.container.getConfiguration().marshaller().mediaType()).createUserMarshaller(this.loader, List.of(loader));
                     // If this is a protostream marshaller, additionally auto-register deployment-specific schemas with server
                     if (marshaller.mediaType().equals(MediaType.APPLICATION_PROTOSTREAM)) {
                         RemoteSchemasAdmin admin = this.container.administration().schemas();
                         for (SerializationContextInitializer initializer : ServiceLoader.load(SerializationContextInitializer.class, loader)) {
                             if (initializer instanceof GeneratedSchema schema) {
-                                if (WildFlySecurityManager.getClassLoaderPrivileged(schema.getClass()) == loader) {
+                                if (schema.getClass().getClassLoader() == loader) {
                                     SchemaOpResult result = admin.create(schema);
                                     if (result.hasError()) {
                                         InfinispanLogger.ROOT_LOGGER.warn(result.getError());
@@ -93,7 +92,7 @@ public class ManagedRemoteCacheContainer extends RemoteCacheContainerDecorator i
         }
 
         RemoteCache<K, V> cache = this.container.getCache(cacheName);
-        return (cache != null) ? new ManagedRemoteCache<>(this, this.container, cache, this.registrar) {
+        return (cache != null) ? new ManagedRemoteCache<>(this, cache, this.registrar) {
             @Override
             public void stop() {
                 super.stop();

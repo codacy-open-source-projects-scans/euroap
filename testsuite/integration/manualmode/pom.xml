@@ -16,7 +16,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
     </parent>
 
     <!-- ********************************************************************************** -->
@@ -41,6 +41,26 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>${ee.maven.groupId}</groupId>
+            <artifactId>wildfly-testsuite-shared</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.core</groupId>
+            <artifactId>wildfly-deployment-repository</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.core</groupId>
+            <artifactId>wildfly-domain-management</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- These seem to be required first so that jbossws-cxf-client ends up on the class path first. Also required for Java 11 -->
         <dependency>
             <groupId>jakarta.activation</groupId>
@@ -383,7 +403,6 @@
             <plugin>
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-maven-plugin</artifactId>
-                <version>${version.org.wildfly.plugin}</version>
                 <executions>
                     <execution>
                         <id>ts.config-as.configure-wildfly</id>
@@ -483,7 +502,7 @@
                 <executions>
                     <!-- Provision an installation not using a channel to check that
                          channel-based provisioning provides the same results as provisioning
-                         from the version included in the feature pack. -->
+                         from the version included in the feature-pack. -->
                     <execution>
                         <id>channel-provisioning-comparison</id>
                         <goals>
@@ -597,7 +616,7 @@
                         <multichannel.ee.feature.pack.artifactId>${testsuite.ee.only.feature.pack.artifactId}</multichannel.ee.feature.pack.artifactId>
                         <oidc.jboss.home>${oidc.jboss.home}</oidc.jboss.home>
                         <!-- Tell ProvisioningConsistenceTestCase the location of the pre-built server -->
-                        <ee.dist.output.dir>${testsuite.default.build.project.root}/ee-dist/target/${server.output.dir.prefix}-${server.output.dir.qualifier}${server.output.dir.version}</ee.dist.output.dir>
+                        <ee.dist.output.dir>${testsuite.default.build.project.root}ee-dist/target/${server.output.dir.prefix}-${server.output.dir.qualifier}${server.output.dir.version}</ee.dist.output.dir>
                         <build.output.dir>${wildfly.build.output.dir}</build.output.dir>
                     </systemPropertyVariables>
                 </configuration>
@@ -658,7 +677,6 @@
                     <plugin>
                         <groupId>org.wildfly.plugins</groupId>
                         <artifactId>wildfly-maven-plugin</artifactId>
-                        <version>${version.org.wildfly.plugin}</version>
                         <executions>
                             <execution>
                                 <phase>none</phase>

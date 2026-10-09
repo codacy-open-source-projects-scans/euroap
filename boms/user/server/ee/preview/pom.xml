@@ -15,7 +15,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
     </parent>
 
     <packaging>pom</packaging>
@@ -96,11 +96,32 @@
                                     <groupId>org.jboss.spec.jakarta.el</groupId>
                                     <artifactId>jakarta.el-api</artifactId>
                                 </dependency>
+                                <!-- The groupId for CDI is different in EE 12 so CDI API declarations are not shared -->
                                 <dependency>
-                                    <groupId>jakarta.enterprise</groupId>
-                                    <artifactId>jakarta.enterprise.cdi-el-api</artifactId>
+                                    <groupId>jakarta.cdi</groupId>
+                                    <artifactId>jakarta.cdi-api</artifactId>
+                                </dependency>
+                                <dependency>
+                                    <groupId>jakarta.cdi</groupId>
+                                    <artifactId>jakarta.cdi-el-api</artifactId>
+                                </dependency>
+                                <dependency>
+                                    <groupId>jakarta.cdi</groupId>
+                                    <artifactId>jakarta.cdi-lang-model-api</artifactId>
+                                </dependency>
+                                <!-- replaces org.hibernate.orm:hibernate-jpamodelgen -->
+                                <dependency>
+                                    <groupId>org.hibernate.orm</groupId>
+                                    <artifactId>hibernate-processor</artifactId>
                                 </dependency>
                             </includeDependencies>
+                            <versionRefDependencies combine.children="append">
+                                <dependency>
+                                    <groupId>org.hibernate.orm</groupId>
+                                    <artifactId>hibernate-processor</artifactId>
+                                    <version>org.hibernate.orm:hibernate-core:jar</version>
+                                </dependency>
+                            </versionRefDependencies>
                         </configuration>
                     </execution>
                 </executions>

@@ -15,7 +15,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-server-ee</artifactId>
@@ -57,7 +57,7 @@
                     <configuration>
                         <!-- bom builder plugin config common to all Server EE BOMs -->
                         <includeDependencies combine.children="append">
-                            <!-- Jakarta EE original and forked APIs -->
+                            <!-- EE original and forked APIs -->
                             <!-- replaces com.sun.activation:jakarta.activation -->
                             <dependency>
                                 <groupId>jakarta.activation</groupId>
@@ -88,20 +88,10 @@
                                 <groupId>jakarta.ejb</groupId>
                                 <artifactId>jakarta.ejb-api</artifactId>
                             </dependency>
-                            <!-- already present -->
-                            <dependency>
-                                <groupId>jakarta.enterprise</groupId>
-                                <artifactId>jakarta.enterprise.cdi-api</artifactId>
-                            </dependency>
                             <!-- replaces org.jboss.spec.javax.enterprise.concurrent:jboss-concurrency-api_1.0_spec -->
                             <dependency>
                                 <groupId>jakarta.enterprise.concurrent</groupId>
                                 <artifactId>jakarta.enterprise.concurrent-api</artifactId>
-                            </dependency>
-                            <!-- new in the BOM -->
-                            <dependency>
-                                <groupId>jakarta.enterprise</groupId>
-                                <artifactId>jakarta.enterprise.lang-model</artifactId>
                             </dependency>
                             <!-- replaces org.jboss.spec.javax.faces:jboss-jsf-api_2.3_spec -->
                             <dependency>
@@ -256,11 +246,6 @@
                             <dependency>
                                 <groupId>org.hibernate.validator</groupId>
                                 <artifactId>hibernate-validator-annotation-processor</artifactId>
-                            </dependency>
-                            <!-- replaces org.hibernate:hibernate-jpamodelgen -->
-                            <dependency>
-                                <groupId>org.hibernate.orm</groupId>
-                                <artifactId>hibernate-jpamodelgen</artifactId>
                             </dependency>
                             <!-- include ispn -->
                             <dependency>
@@ -677,7 +662,7 @@
                             </dependency>
                             <dependency>
                                 <groupId>org.hibernate.orm</groupId>
-                                <artifactId>hibernate-jpamodelgen</artifactId>
+                                <artifactId>hibernate-processor</artifactId>
                                 <version>org.hibernate.orm:hibernate-core:jar</version>
                             </dependency>
                         </versionRefDependencies>
@@ -708,7 +693,10 @@
             <id>legacy-ee-build</id>
             <activation>
                 <property>
-                    <name>!no.legacy.ee.build</name>
+                    <!-- This profile is not expected to be used.
+                         We want to keep the code structure for future use,
+                         but there is no current use. -->
+                    <name>disabled.legacy.ee.build</name>
                 </property>
             </activation>
             <modules>

@@ -12,7 +12,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
     </parent>
     <artifactId>wildfly-ts-integ-mp-rest-client</artifactId>
     <name>WildFly Test Suite: Integration - MicroProfile - REST Client TCK</name>
@@ -91,6 +91,12 @@
         <ts.microprofile-tck-glow.expected-discovery>[cdi, ee-integration, jaxrs, jsonb, jsonp, microprofile-config, microprofile-rest-client, servlet]==>ee-core-profile-server,jaxrs,microprofile-rest-client</ts.microprofile-tck-glow.expected-discovery>
     </properties>
     <dependencies>
+        <!-- Required by wiremock server module -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Required by the RESTEasy Client -->
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
@@ -253,8 +259,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>jakarta.enterprise</groupId>
-            <artifactId>jakarta.enterprise.cdi-api</artifactId>
+            <groupId>${cdi.api.groupId}</groupId>
+            <artifactId>${cdi.api.artifactId}</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -422,13 +428,6 @@
                                     <groupId>org.wiremock</groupId>
                                     <artifactId>wiremock</artifactId>
                                 </artifactItem>
-                                <!-- This is required for the MicroProfile REST Client 3.0 TCK. This will always copy it,
-                                     but we'll only use it in the 3.0 TCK runner.
-                                 -->
-                                <artifactItem>
-                                    <groupId>org.jboss.spec.javax.servlet</groupId>
-                                    <artifactId>jboss-servlet-api_4.0_spec</artifactId>
-                                </artifactItem>
                             </artifactItems>
                             <stripVersion>true</stripVersion>
                             <outputDirectory>${wiremock.lib.path}</outputDirectory>
@@ -507,7 +506,6 @@
             <plugin>
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-maven-plugin</artifactId>
-                <version>${version.org.wildfly.plugin}</version>
                 <configuration>
                     <overwrite-provisioned-server>true</overwrite-provisioned-server>
                 </configuration>
@@ -566,7 +564,7 @@
                             <packaging-scripts>
                                 <cli-session>
                                     <javaOpts>
-                                        <opt>-Dmaven.repo.local=${maven.repo.local}</opt>
+                                        <opt>-Dmaven.repo.local=${settings.localRepository}</opt>
                                     </javaOpts>
                                     <scripts>
                                         <script>wiremock-bootable.cli</script>
@@ -612,7 +610,7 @@
             <build>
                 <pluginManagement>
                     <plugins>
-                        <!-- Override the glow-arquillian feature pack setting in this profile
+                        <!-- Override the glow-arquillian feature-pack setting in this profile
                              to specify inclusion of the org.apache.commons.lang3 module. -->
                         <plugin>
                             <groupId>org.wildfly.glow</groupId>
@@ -642,10 +640,9 @@
                     <plugin>
                         <groupId>org.wildfly.plugins</groupId>
                         <artifactId>wildfly-maven-plugin</artifactId>
-                        <version>${version.org.wildfly.plugin}</version>
                         <executions>
                             <execution>
-                                <!-- Specify both feature packs for the non-glow-driven provisioning. -->
+                                <!-- Specify both feature-packs for the non-glow-driven provisioning. -->
                                 <id>mp-server-provisioning</id>
                                 <configuration>
                                     <feature-packs>
@@ -679,7 +676,7 @@
             <build>
                 <pluginManagement>
                     <plugins>
-                        <!-- Override the glow-arquillian feature pack setting in this profile
+                        <!-- Override the glow-arquillian feature-pack setting in this profile
                              to specify inclusion of the org.apache.commons.lang3 module. -->
                         <plugin>
                             <groupId>org.wildfly.glow</groupId>
@@ -709,9 +706,8 @@
                     <plugin>
                         <groupId>org.wildfly.plugins</groupId>
                         <artifactId>wildfly-maven-plugin</artifactId>
-                        <version>${version.org.wildfly.plugin}</version>
                         <executions>
-                            <!-- Specify both feature packs for the non-glow-driven provisioning. -->
+                            <!-- Specify both feature-packs for the non-glow-driven provisioning. -->
                             <execution>
                                 <id>mp-server-provisioning</id>
                                 <configuration>
@@ -792,7 +788,7 @@
             </properties>
         </profile>
 
-        <!-- Test against the preview feature pack -->
+        <!-- Test against the preview feature-pack -->
         <profile>
             <id>preview.test.profile</id>
             <activation>

@@ -16,7 +16,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
     </parent>
 
     <!-- ********************************************************************************** -->
@@ -42,6 +42,31 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>${ee.maven.groupId}</groupId>
+            <artifactId>wildfly-testsuite-shared</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${cdi.api.groupId}</groupId>
+            <artifactId>${cdi.api.artifactId}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.logmanager</groupId>
+            <artifactId>commons-logging-jboss-logmanager</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.core</groupId>
+            <artifactId>wildfly-controller</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -142,7 +167,6 @@
             <plugin>
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-maven-plugin</artifactId>
-                <version>${version.org.wildfly.plugin}</version>
                 <executions>
                     <execution>
                         <phase>none</phase>
@@ -200,9 +224,6 @@
                                     <groupId>${ee.maven.groupId}</groupId>
                                     <artifactId>${testsuite.ee.only.feature.pack.artifactId}</artifactId>
                                     <version>${ee.maven.version}</version>
-                                    <included-packages>
-                                        <name>docs.examples.configs</name>
-                                    </included-packages>
                                 </feature-pack>
                                 <feature-pack>
                                     <groupId>${full.maven.groupId}</groupId>
@@ -247,7 +268,7 @@
                         <node3>${node3}</node3>
                         <mcast>${mcast}</mcast>
                         <!-- Tell ProvisioningConsistenceTestCase the location of the pre-built server -->
-                        <dist.output.dir>${testsuite.default.build.project.root}/dist/target/${server.output.dir.prefix}-${server.output.dir.qualifier}${server.output.dir.version}</dist.output.dir>
+                        <dist.output.dir>${testsuite.default.build.project.root}dist/target/${server.output.dir.prefix}-${server.output.dir.qualifier}${server.output.dir.version}</dist.output.dir>
                         <build.output.dir>${wildfly.build.output.dir}</build.output.dir>
                     </systemPropertyVariables>
                 </configuration>
@@ -316,7 +337,6 @@
                     <plugin>
                         <groupId>org.wildfly.plugins</groupId>
                         <artifactId>wildfly-maven-plugin</artifactId>
-                        <version>${version.org.wildfly.plugin}</version>
                         <executions>
                             <execution>
                                 <id>channel-provisioning-comparison</id>

@@ -22,12 +22,14 @@ import org.jboss.modules.Module;
 import org.wildfly.clustering.cache.infinispan.marshalling.MediaTypes;
 import org.wildfly.clustering.cache.infinispan.marshalling.UserMarshaller;
 import org.wildfly.clustering.cache.infinispan.remote.RemoteCacheConfiguration;
+import org.wildfly.clustering.cache.infinispan.remote.transaction.RemoteTransactionManagerLookup;
 import org.wildfly.clustering.infinispan.client.service.HotRodServiceDescriptor;
 import org.wildfly.clustering.infinispan.client.service.RemoteCacheConfigurationServiceInstallerFactory;
 import org.wildfly.clustering.infinispan.client.service.RemoteCacheServiceInstallerFactory;
+import org.wildfly.clustering.marshalling.protostream.ImmutableSerializationContext;
 import org.wildfly.clustering.marshalling.protostream.ProtoStreamByteBufferMarshaller;
-import org.wildfly.clustering.marshalling.protostream.SerializationContextBuilder;
-import org.wildfly.clustering.marshalling.protostream.modules.ModuleClassLoaderMarshaller;
+import org.wildfly.clustering.marshalling.protostream.ProtoStreamConfiguration;
+import org.wildfly.clustering.marshalling.protostream.modules.ModuleClassResolver;
 import org.wildfly.clustering.server.service.BinaryServiceConfiguration;
 import org.wildfly.clustering.session.SessionManagerFactory;
 import org.wildfly.clustering.session.infinispan.remote.HotRodSessionManagerFactory;
@@ -56,6 +58,9 @@ public class HotRodSessionManagementProvider extends AbstractSessionManagementPr
                 "media-type" : "application/octet-stream"
             }
         },
+        "locking" : {
+            "isolation" : "REPEATABLE_READ"
+        },
         "mode" : "SYNC",
         "transaction" : {
             "mode" : "NON_XA",
@@ -73,13 +78,14 @@ public class HotRodSessionManagementProvider extends AbstractSessionManagementPr
         BinaryServiceConfiguration deploymentCacheConfiguration = this.getCacheConfiguration().withChildName(configuration.getDeploymentName());
         String templateName = this.getCacheConfiguration().getChildName();
         Module module = Module.forClass(HotRodSessionManagerFactory.class);
-        Marshaller marshaller = new UserMarshaller(MediaTypes.WILDFLY_PROTOSTREAM, new ProtoStreamByteBufferMarshaller(SerializationContextBuilder.newInstance(new ModuleClassLoaderMarshaller(module)).load(module.getClassLoader()).build()));
+        ProtoStreamConfiguration config = ProtoStreamConfiguration.Builder.with(new ModuleClassResolver(module)).build();
+        ImmutableSerializationContext context = ImmutableSerializationContext.Builder.with(config).build();
+        Marshaller marshaller = new UserMarshaller(MediaTypes.WILDFLY_PROTOSTREAM, new ProtoStreamByteBufferMarshaller(context));
 
         Consumer<RemoteCacheConfigurationBuilder> configurator = new Consumer<>() {
             @Override
             public void accept(RemoteCacheConfigurationBuilder builder) {
-                // Near caching not compatible with max-idle expiration.
-                builder.forceReturnValues(false).marshaller(marshaller).nearCacheMode(NearCacheMode.DISABLED).transactionMode(TransactionMode.NONE);
+                builder.forceReturnValues(false).marshaller(marshaller).nearCacheMode(NearCacheMode.DISABLED).transactionMode(TransactionMode.NON_XA).transactionManagerLookup(RemoteTransactionManagerLookup.INSTANCE);
                 if (templateName != null) {
                     builder.templateName(templateName);
                 } else {

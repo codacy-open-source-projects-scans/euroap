@@ -7,7 +7,7 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -17,7 +17,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -25,8 +25,8 @@
     <description>
         Common dependency management that can be imported by other boms used for traditional
         capabilities like Jakarta EE. Not meant for direct use as a bom. Contains items
-        common to *all* feature packs that directly provide 'base' functionality,
-        e.g. the wildfly-ee feature pack.
+        common to *all* feature-packs that directly provide 'base' functionality,
+        e.g. the wildfly-ee feature-pack.
     </description>
     <packaging>pom</packaging>
 
@@ -926,20 +926,6 @@
             </dependency>
 
             <dependency>
-                <groupId>com.fasterxml</groupId>
-                <artifactId>classmate</artifactId>
-                <version>${version.com.fasterxml.classmate}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>${version.com.fasterxml.jackson}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <dependency>
                 <groupId>com.fasterxml.woodstox</groupId>
                 <artifactId>woodstox-core</artifactId>
                 <version>${version.org.codehaus.woodstox.woodstox-core}</version>
@@ -1036,12 +1022,6 @@
                         <artifactId>checker-qual</artifactId>
                     </exclusion>
                 </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>com.ibm.async</groupId>
-                <artifactId>asyncutil</artifactId>
-                <version>${version.com.ibm.async.asyncutil}</version>
             </dependency>
 
             <dependency>
@@ -1173,6 +1153,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-secure-xml</artifactId>
+                <version>${version.org.apache.commons.secure-xml}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>de.dentrassi.crypto</groupId>
                 <artifactId>pem-keystore</artifactId>
                 <version>${version.de.dentrassi.crypto}</version>
@@ -1262,31 +1248,6 @@
                 <version>${version.io.smallrye.smallrye-mutiny}</version>
             </dependency>
 
-            <!-- TODO (jrp) temporary override until the new version of Undertow is integrated into core and that version of core is integrated here -->
-            <dependency>
-                <groupId>io.undertow</groupId>
-                <artifactId>undertow-core</artifactId>
-                <version>${version.io.undertow}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>*</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>io.undertow.jastow</groupId>
-                <artifactId>jastow</artifactId>
-                <version>${version.io.undertow.jastow}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>*</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
             <dependency>
                 <groupId>jakarta.activation</groupId>
                 <artifactId>jakarta.activation-api</artifactId>
@@ -1355,11 +1316,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>jakarta.json.bind</groupId>
-                <artifactId>jakarta.json.bind-api</artifactId>
-                <version>${version.jakarta.json.bind.api}</version>
-            </dependency>
-            <dependency>
                 <groupId>jakarta.mail</groupId>
                 <artifactId>jakarta.mail-api</artifactId>
                 <version>${version.jakarta.mail-api}</version>
@@ -1374,17 +1330,6 @@
                 <groupId>jakarta.resource</groupId>
                 <artifactId>jakarta.resource-api</artifactId>
                 <version>${version.jakarta.resource.jakarta-resource-api}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>*</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>jakarta.servlet.jsp</groupId>
-                <artifactId>jakarta.servlet.jsp-api</artifactId>
-                <version>${version.jakarta.servlet.jsp.jakarta-servlet-jsp-api}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
@@ -1451,36 +1396,13 @@
             </dependency>
 
             <dependency>
-                <groupId>net.shibboleth.utilities</groupId>
-                <artifactId>java-support</artifactId>
-                <version>${version.net.shibboleth.utilities.java-support}</version>
+                <groupId>net.shibboleth</groupId>
+                <artifactId>shib-support</artifactId>
+                <version>${version.net.shibboleth.shib-support}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.google.code.findbugs</groupId>
                         <artifactId>jsr305</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4</artifactId>
-                <version>${version.antlr}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>*</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-runtime</artifactId>
-                <version>${version.antlr}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>*</groupId>
-                        <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -2314,23 +2236,6 @@
                     <exclusion>
                         <groupId>org.bouncycastle</groupId>
                         <artifactId>bcprov-jdk18on</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>org.eclipse</groupId>
-                <artifactId>yasson</artifactId>
-                <version>${version.org.eclipse.yasson}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>*</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                    <!-- This seems to require an explicit exclusion for yasson 1.0.4 -->
-                    <exclusion>
-                        <groupId>org.glassfish</groupId>
-                        <artifactId>jakarta.json</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -3184,7 +3089,18 @@
 
             <dependency>
                 <groupId>org.opensaml</groupId>
-                <artifactId>opensaml-core</artifactId>
+                <artifactId>opensaml-core-api</artifactId>
+                <version>${version.org.opensaml.opensaml}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>io.dropwizard.metrics</groupId>
+                        <artifactId>metrics-core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.opensaml</groupId>
+                <artifactId>opensaml-core-impl</artifactId>
                 <version>${version.org.opensaml.opensaml}</version>
                 <exclusions>
                     <exclusion>
@@ -3730,8 +3646,16 @@
                 <version>${version.xml-resolver}</version>
             </dependency>
 
-            <!-- BOM imports. These go last so individual artifacts can be overriden above, with earlier
+            <!-- BOM imports. These go last so individual artifacts can be overridden above, with earlier
                  declarations taking precedence. -->
+
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${version.com.fasterxml.jackson}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <!-- Import the core parent to get all the managed dependencies from core -->
             <dependency>

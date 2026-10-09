@@ -17,7 +17,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -37,17 +37,9 @@
             'legacy', 'standard', and 'preview' builds.
             -->
 
-            <!-- BOMs -->
+            <!-- BOM imports go at the end, after individual artifact declarations. -->
 
-            <dependency>
-                <groupId>com.fasterxml.jackson</groupId>
-                <artifactId>jackson-bom</artifactId>
-                <version>${version.com.fasterxml.jackson}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <!-- Keep sorted -->
+            <!-- Keep these sorted -->
 
             <dependency>
                 <groupId>${full.maven.groupId}</groupId>
@@ -335,17 +327,6 @@
                 <groupId>com.github.luben</groupId>
                 <artifactId>zstd-jni</artifactId>
                 <version>${version.com.github.luben.zstd-jni}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>*</groupId>
-                        <artifactId>*</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>com.fasterxml.jackson.jr</groupId>
-                <artifactId>jackson-jr-objects</artifactId>
                 <exclusions>
                     <exclusion>
                         <groupId>*</groupId>
@@ -681,7 +662,7 @@
 
             <dependency>
                 <groupId>io.prometheus</groupId>
-                <artifactId>prometheus-metrics-exposition-formats</artifactId>
+                <artifactId>prometheus-metrics-exposition-textformats</artifactId>
                 <version>${version.io.prometheus}</version>
                 <exclusions>
                     <exclusion>
@@ -841,6 +822,11 @@
             <dependency>
                 <groupId>io.smallrye.config</groupId>
                 <artifactId>smallrye-config-core</artifactId>
+                <version>${version.io.smallrye.smallrye-config}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.smallrye.config</groupId>
+                <artifactId>smallrye-config-microprofile</artifactId>
                 <version>${version.io.smallrye.smallrye-config}</version>
             </dependency>
             <dependency>
@@ -1464,6 +1450,18 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+
+            <!-- BOM imports. These go last so individual artifacts can be overridden above, with earlier
+                 declarations taking precedence. -->
+
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${version.com.fasterxml.jackson}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

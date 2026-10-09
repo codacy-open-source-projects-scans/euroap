@@ -16,7 +16,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
     </parent>
 
     <artifactId>wildfly-ts-layers-expansion</artifactId>
@@ -24,6 +24,11 @@
     <name>WildFly Test Suite: Galleon Layers -- Expansion</name>
 
     <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.wildfly.core</groupId>
             <artifactId>wildfly-core-testsuite-shared</artifactId>
@@ -58,6 +63,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <scope>test</scope>
@@ -89,7 +99,7 @@
         <!-- default configs provisioned with passive+ -->
         <std.default.install.dir>${project.build.directory}/std-configs</std.default.install.dir>
 
-        <!-- This module tests expanded funtionality, so use a bom that includes expansion dependencies -->
+        <!-- This module tests expanded functionality, so use a bom that includes expansion dependencies -->
 		<dependency.management.import.artifact>wildfly-standard-expansion-bom</dependency.management.import.artifact>
         <dependency.management.import.test.artifact>wildfly-standard-test-expansion-bom</dependency.management.import.test.artifact>
     </properties>
@@ -110,7 +120,7 @@
             </properties>
         </profile>
 
-        <!-- Test against wildfly-preview feature pack -->
+        <!-- Test against wildfly-preview feature-pack -->
         <profile>
             <id>preview.profile</id>
             <activation>
@@ -127,6 +137,30 @@
                 <!-- Use the transformed artifact repo -->
                 <maven.repo.local>${settings.localRepository}</maven.repo.local>
                 <dependency.management.import.test.artifact>wildfly-preview-test-expansion-bom</dependency.management.import.test.artifact>
+            </properties>
+        </profile>
+
+        <!-- We don't support test profiles that assume configuration of two feature
+             packs - wildfly on top of  an explicit wildfly-ee variant. It's too complex
+              to set up.-->
+        <profile>
+            <id>latest-ee-full-server-tests</id>
+            <activation>
+                <property><name>latest-ee-full-server-tests</name></property>
+            </activation>
+            <properties>
+                <provisioning.phase>none</provisioning.phase>
+                <surefire.default-test.phase>none</surefire.default-test.phase>
+            </properties>
+        </profile>
+        <profile>
+            <id>legacy-ee-full-server-tests</id>
+            <activation>
+                <property><name>legacy-ee-full-server-tests</name></property>
+            </activation>
+            <properties>
+                <provisioning.phase>none</provisioning.phase>
+                <surefire.default-test.phase>none</surefire.default-test.phase>
             </properties>
         </profile>
 

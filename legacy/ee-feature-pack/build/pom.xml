@@ -17,7 +17,7 @@
         Maintain separation between the artifact id and the version to help prevent
         merge conflicts between commits changing the GA and those changing the V.
         -->
-        <version>40.0.0.Beta1-SNAPSHOT</version>
+        <version>42.0.0.Final-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -73,11 +73,15 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Depends on the org.wildfly.channels:wildfly-compat-ee-10 artifact to ensure
+             that this channel is built first before the distribution is created -->
         <dependency>
             <groupId>${channels.maven.groupId}</groupId>
-            <artifactId>wildfly</artifactId>
-            <type>yaml</type>
+            <artifactId>wildfly-compat-${legacy.ee.artifactid.segment}</artifactId>
+            <version>${full.maven.version}</version>
             <classifier>manifest</classifier>
+            <type>yaml</type>
+            <scope>provided</scope>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -109,7 +113,6 @@
             <plugin>
                 <groupId>org.wildfly.plugins</groupId>
                 <artifactId>wildfly-maven-plugin</artifactId>
-                <version>${version.org.wildfly.plugin}</version>
                 <executions>
                     <execution>
                         <id>server-provisioning</id>
@@ -123,15 +126,22 @@
                             <log-provisioning-time>${galleon.log.time}</log-provisioning-time>
                             <offline-provisioning>${galleon.offline}</offline-provisioning>
                             <overwrite-provisioned-server>true</overwrite-provisioned-server>
+                            <channels>
+                                <channel>
+                                    <name>wildfly</name>
+                                    <manifest>
+                                        <groupId>${channels.maven.groupId}</groupId>
+                                        <artifactId>wildfly-compat-${legacy.ee.artifactid.segment}</artifactId>
+                                        <version>${full.maven.version}</version>
+                                    </manifest>
+                                </channel>
+                            </channels>
                             <feature-packs>
                                 <feature-pack>
                                     <transitive>true</transitive>
                                     <groupId>${ee.maven.groupId}</groupId>
-                                    <artifactId>wildfly-ee-10-feature-pack</artifactId>
+                                    <artifactId>${legacy.ee.feature.pack.artifactId}</artifactId>
                                     <version>${ee.maven.version}</version>
-                                    <included-packages>
-                                        <name>docs.examples.configs</name>
-                                    </included-packages>
                                 </feature-pack>
                                 <feature-pack>
                                     <groupId>${full.maven.groupId}</groupId>
@@ -203,4 +213,16 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <!-- For the build zip, ignore any external channel setting -->
+            <id>external.channel.profile</id>
+            <activation><property><name>external.wildfly.channels</name></property></activation>
+            <properties>
+                <wildfly.channels>${channels.maven.groupId}:wildfly-compat-${legacy.ee.artifactid.segment}:${full.maven.version}</wildfly.channels>
+            </properties>
+        </profile>
+    </profiles>
+
 </project>
